@@ -2,33 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/theme.dart';
 import 'core/database/models.dart';
 import 'features/routines/routines_screen.dart';
 import 'features/exercises/exercises_screen.dart';
+import 'features/profile/profile_screen.dart';
+import 'features/workout/workout_provider.dart';
+import 'features/workout/active_workout_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Hive
   await Hive.initFlutter();
   Hive.registerAdapter(ExerciseAdapter());
   Hive.registerAdapter(WorkoutSetAdapter());
   Hive.registerAdapter(RoutineAdapter());
   Hive.registerAdapter(WorkoutLogAdapter());
-  
+
   await Hive.openBox<Exercise>('exercises');
   await Hive.openBox<Routine>('routines');
   await Hive.openBox<WorkoutLog>('workout_logs');
 
-  runApp(
-    const ProviderScope(
-      child: GymTrackerApp(),
-    ),
-  );
+  await initializeDateFormatting('it_IT', null);
+
+  runApp(const ProviderScope(child: GymTrackerApp()));
 }
 
-// Router configuration
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
@@ -47,7 +46,6 @@ class GymTrackerApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
-
     return MaterialApp.router(
       title: 'Gym Tracker',
       theme: AppTheme.darkTheme,
@@ -57,48 +55,121 @@ class GymTrackerApp extends ConsumerWidget {
   }
 }
 
-class MainNavigationScreen extends StatefulWidget {
+class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
-
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  ConsumerState<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   int _currentIndex = 0;
+  final _workoutKey = GlobalKey();
 
   final List<Widget> _screens = [
     const RoutinesScreen(),
     const ExercisesScreen(),
-    const Center(child: Text('Profilo (WIP)')),
+    const ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list),
-            label: 'Schede',
+    final workoutState = ref.watch(workoutProvider);
+    final isWorkingOut = workoutState.isTracking && workoutState.activeRoutine != null;
+    final showMiniBanner = isWorkingOut && workoutState.isMinimized;
+
+    return Stack(
+      children: [
+        // Main navigation (always visible underneath)
+        Scaffold(
+          body: _screens[_currentIndex],
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showMiniBanner)
+                GestureDetector(
+                  onTap: () {
+                    ref.read(workoutProvider.notifier).maximizeWorkout();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.7)],
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.fitness_center, color: Colors.white, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                workoutState.activeRoutine!.name,
+                                style: const TextStyle(
+                                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                _formatDuration(workoutState.elapsedTime),
+                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (workoutState.restTimer != null && workoutState.restTimer!.inSeconds > 0) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.bedtime_outlined, size: 12, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(_formatDuration(workoutState.restTimer!),
+                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            ]),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              BottomNavigationBar(
+                currentIndex: _currentIndex,
+                onTap: (index) => setState(() => _currentIndex = index),
+                items: const [
+                  BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Schede'),
+                  BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Esercizi'),
+                  BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profilo'),
+                ],
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.fitness_center),
-            label: 'Esercizi',
+        ),
+        // Active workout overlay — kept alive with Offstage when minimized
+        if (isWorkingOut)
+          Positioned.fill(
+            child: Offstage(
+              offstage: workoutState.isMinimized,
+              child: ActiveWorkoutScreen(
+                key: _workoutKey,
+                routine: workoutState.activeRoutine!,
+              ),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profilo',
-          ),
-        ],
-      ),
+      ],
     );
+  }
+
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return d.inHours > 0 ? '${d.inHours}:$m:$s' : '$m:$s';
   }
 }

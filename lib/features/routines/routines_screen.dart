@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/theme.dart';
 import 'routines_provider.dart';
+import 'routine_detail_screen.dart';
+import 'create_routine_screen.dart';
 
 class RoutinesScreen extends ConsumerWidget {
   const RoutinesScreen({super.key});
@@ -17,7 +19,10 @@ class RoutinesScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
-              // TODO: Navigate to create routine screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateRoutineScreen()),
+              );
             },
           ),
         ],
@@ -48,7 +53,12 @@ class RoutinesScreen extends ConsumerWidget {
                     ),
                     trailing: const Icon(Icons.play_circle_fill, color: AppTheme.primaryColor, size: 40,),
                     onTap: () {
-                      // TODO: View routine details or start workout
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RoutineDetailScreen(routine: routine),
+                        ),
+                      );
                     },
                   ),
                 );

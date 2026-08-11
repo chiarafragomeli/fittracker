@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF3A86FF); // Blue accent
-  static const Color backgroundColor = Color(0xFF000000); // Pure black
-  static const Color surfaceColor = Color(0xFF1C1C1E); // Dark grey
+  static const Color primaryColor = Color(0xFF3A86FF);
+  static const Color backgroundColor = Color(0xFF000000);
+  static const Color surfaceColor = Color(0xFF1C1C1E);
   static const Color textPrimaryColor = Color(0xFFFFFFFF);
   static const Color textSecondaryColor = Color(0xFF8E8E93);
+  static const Color subtitleColor = Color(0xFF8E8E93); // alias
   static const Color successColor = Color(0xFF34C759);
   static const Color errorColor = Color(0xFFFF3B30);
 
@@ -47,7 +48,7 @@ class AppTheme {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surfaceColor,
         elevation: 0,
         shape: RoundedRectangleBorder(

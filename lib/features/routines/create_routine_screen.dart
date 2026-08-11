@@ -1,0 +1,186 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/theme.dart';
+import '../exercises/exercises_provider.dart';
+import 'routines_provider.dart';
+
+class CreateRoutineScreen extends ConsumerStatefulWidget {
+  const CreateRoutineScreen({super.key});
+
+  @override
+  ConsumerState<CreateRoutineScreen> createState() => _CreateRoutineScreenState();
+}
+
+class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
+  final _nameController = TextEditingController();
+  final List<String> _selectedExerciseIds = [];
+  String _filterGroup = 'Tutti';
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Inserisci un nome per la scheda')),
+      );
+      return;
+    }
+    ref.read(routinesProvider.notifier).addRoutine(name, _selectedExerciseIds);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allExercises = ref.watch(exercisesProvider);
+    final groups = ['Tutti', ...{for (var e in allExercises) e.muscleGroup}];
+    final filtered = _filterGroup == 'Tutti'
+        ? allExercises
+        : allExercises.where((e) => e.muscleGroup == _filterGroup).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Nuova Scheda'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _save,
+            child: const Text('Salva', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Name field
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              controller: _nameController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Nome scheda (es. Giorno 3A)',
+                prefixIcon: Icon(Icons.edit, color: AppTheme.primaryColor),
+              ),
+            ),
+          ),
+
+          // Filter chips
+          SizedBox(
+            height: 44,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              children: groups.map((g) {
+                final selected = _filterGroup == g;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(g),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _filterGroup = g),
+                    selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
+                    checkmarkColor: AppTheme.primaryColor,
+                    labelStyle: TextStyle(
+                      color: selected ? AppTheme.primaryColor : AppTheme.textSecondaryColor,
+                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    backgroundColor: AppTheme.surfaceColor,
+                    side: BorderSide(color: selected ? AppTheme.primaryColor : Colors.transparent),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          // Selected count
+          if (_selectedExerciseIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: AppTheme.primaryColor, size: 16),
+                  const SizedBox(width: 6),
+                  Text('${_selectedExerciseIds.length} esercizi selezionati',
+                      style: const TextStyle(color: AppTheme.primaryColor, fontSize: 13)),
+                ],
+              ),
+            ),
+
+          // Exercise list
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) {
+                final ex = filtered[index];
+                final isSelected = _selectedExerciseIds.contains(ex.id);
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedExerciseIds.remove(ex.id);
+                      } else {
+                        _selectedExerciseIds.add(ex.id);
+                      }
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.15) : AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 24, height: 24,
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: isSelected ? AppTheme.primaryColor : Colors.white30),
+                          ),
+                          child: isSelected
+                              ? const Icon(Icons.check, color: Colors.white, size: 16)
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(ex.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                              Text(ex.muscleGroup, style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          Text(
+                            '${_selectedExerciseIds.indexOf(ex.id) + 1}°',
+                            style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
