@@ -212,6 +212,6 @@ class _StatCard extends StatelessWidget {
           Text(subtitle, style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 10)),
         ],
       ),
-    );
+    ));
   }
 }
