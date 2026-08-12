@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/theme.dart';
 import '../../core/database/models.dart';
 import 'package:intl/intl.dart';
+import 'workout_history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -55,11 +56,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _StatCard(title: 'Oggi', value: '$daily', subtitle: 'Allenamenti')),
+                    Expanded(child: _StatCard(
+                      title: 'Oggi', value: '$daily', subtitle: 'Allenamenti', 
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutHistoryScreen())),
+                    )),
                     const SizedBox(width: 12),
-                    Expanded(child: _StatCard(title: 'Questa Settimana', value: '$weekly', subtitle: 'Allenamenti')),
+                    Expanded(child: _StatCard(
+                      title: 'Questa Settimana', value: '$weekly', subtitle: 'Allenamenti', 
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutHistoryScreen())),
+                    )),
                     const SizedBox(width: 12),
-                    Expanded(child: _StatCard(title: 'Questo Mese', value: '$monthly', subtitle: 'Allenamenti')),
+                    Expanded(child: _StatCard(
+                      title: 'Questo Mese', value: '$monthly', subtitle: 'Allenamenti', 
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutHistoryScreen())),
+                    )),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -179,13 +189,16 @@ class _StatCard extends StatelessWidget {
   final String title;
   final String value;
   final String subtitle;
+  final VoidCallback? onTap;
 
-  const _StatCard({required this.title, required this.value, required this.subtitle});
+  const _StatCard({required this.title, required this.value, required this.subtitle, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(12),
