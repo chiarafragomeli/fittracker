@@ -5,6 +5,8 @@ import '../../core/theme/theme.dart';
 import '../../core/database/models.dart';
 import '../exercises/exercises_provider.dart';
 import '../workout/workout_provider.dart';
+import 'package:hive/hive.dart';
+import 'package:intl/intl.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
   final Routine routine;
@@ -229,6 +231,32 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     }
   }
 
+  Map<String, dynamic>? _getExerciseHistory(String exId, bool isDuration) {
+    if (!Hive.isBoxOpen('workout_logs')) return null;
+    final box = Hive.box<WorkoutLog>('workout_logs');
+    final logs = box.values.toList().reversed;
+    
+    for (final log in logs) {
+      final sets = log.sets.where((s) => s.exerciseId == exId && s.isCompleted).toList();
+      if (sets.isNotEmpty) {
+        double maxWeight = 0;
+        int maxMetric = 0;
+        for (final s in sets) {
+          if (s.weight > maxWeight) maxWeight = s.weight;
+          final metric = isDuration ? s.durationSeconds : s.reps;
+          if (metric > maxMetric) maxMetric = metric;
+        }
+        return {
+          'date': log.startTime,
+          'maxWeight': maxWeight,
+          'maxMetric': maxMetric,
+          'totalSets': sets.length,
+        };
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final workoutState = ref.watch(workoutProvider);
@@ -382,6 +410,34 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       ),
                     ),
                   ],
+
+                  // Previous history
+                  Builder(
+                    builder: (context) {
+                      final history = _getExerciseHistory(exId, isDuration);
+                      if (history == null) return const SizedBox.shrink();
+                      
+                      final dateStr = DateFormat('dd MMM yyyy', 'it_IT').format(history['date'] as DateTime);
+                      final metricStr = isDuration ? '${history['maxMetric']}s' : '${history['maxMetric']} reps';
+                      final weightStr = history['maxWeight'] > 0 ? ' @ ${history['maxWeight']}kg' : '';
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8, bottom: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.history, size: 14, color: AppTheme.textSecondaryColor),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Ultima volta ($dateStr): ${history['totalSets']} set | Max: $metricStr$weightStr',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
 
                   const SizedBox(height: 12),
 

@@ -111,11 +111,11 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                   label: 'Durata (sec)',
                   icon: Icons.timer,
                   value: duration,
-                  min: 5,
+                  min: 0,
                   max: 300,
-                  step: 5,
-                  onDecrement: () => setSheetState(() => duration = (duration - 5).clamp(5, 300)),
-                  onIncrement: () => setSheetState(() => duration = (duration + 5).clamp(5, 300)),
+                  step: 1,
+                  onDecrement: () => setSheetState(() => duration = (duration - 1).clamp(0, 300)),
+                  onIncrement: () => setSheetState(() => duration = (duration + 1).clamp(0, 300)),
                 )
               else
                 _ConfigRow(

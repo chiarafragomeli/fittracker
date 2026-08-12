@@ -180,13 +180,29 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
   }
 
   void finishWorkout() {
-    if (state.currentWorkout == null) return;
+    if (state.currentWorkout == null || state.activeSets == null) return;
+    
+    final List<WorkoutSet> completedSets = [];
+    state.activeSets!.forEach((exId, setsList) {
+      for (final setMap in setsList) {
+        final isDuration = setMap['metricType'] == 'duration';
+        completedSets.add(WorkoutSet(
+          id: DateTime.now().microsecondsSinceEpoch.toString() + '_' + exId,
+          exerciseId: exId,
+          weight: (setMap['weight'] as num).toDouble(),
+          reps: isDuration ? 0 : (setMap['reps'] as num).toInt(),
+          durationSeconds: isDuration ? (setMap['duration'] ?? 0 as num).toInt() : 0,
+          isCompleted: setMap['done'] as bool,
+        ));
+      }
+    });
+
     final finishedWorkout = WorkoutLog(
       id: state.currentWorkout!.id,
       name: state.currentWorkout!.name,
       startTime: state.currentWorkout!.startTime,
       endTime: DateTime.now(),
-      sets: state.currentWorkout!.sets,
+      sets: completedSets,
     );
     final box = Hive.box<WorkoutLog>('workout_logs');
     box.put(finishedWorkout.id, finishedWorkout);
