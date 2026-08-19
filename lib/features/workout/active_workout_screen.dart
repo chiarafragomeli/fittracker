@@ -272,7 +272,9 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     final allExercises = ref.watch(exercisesProvider);
     final exerciseMap = {for (var e in allExercises) e.id: e};
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -579,6 +581,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           );
         },
       ),
+    ),
     );
   }
 }
@@ -740,6 +743,7 @@ class _NumberFieldState extends State<_NumberField> {
     return TextField(
       controller: _controller,
       keyboardType: TextInputType.numberWithOptions(decimal: widget.isDecimal),
+      textInputAction: TextInputAction.done,
       textAlign: TextAlign.center,
       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
       decoration: InputDecoration(
@@ -754,6 +758,7 @@ class _NumberFieldState extends State<_NumberField> {
         final parsed = widget.isDecimal ? double.tryParse(v) : int.tryParse(v);
         if (parsed != null) widget.onChanged(parsed);
       },
+      onSubmitted: (_) => FocusScope.of(context).unfocus(),
     );
   }
 }
