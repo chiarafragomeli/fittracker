@@ -17,19 +17,23 @@ class CreateRoutineScreen extends ConsumerStatefulWidget {
 
 class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
   late final TextEditingController _nameController;
+  late final TextEditingController _searchController;
   late final List<String> _selectedExerciseIds;
   String _filterGroup = 'Tutti';
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.routine?.name ?? '');
+    _searchController = TextEditingController();
     _selectedExerciseIds = List.from(widget.routine?.exerciseIds ?? []);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -62,9 +66,20 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
       'Tutti',
       ...{for (var e in activeExercises) e.muscleGroup},
     ];
-    final filtered = _filterGroup == 'Tutti'
+
+    // First apply group filter, then apply text search filter
+    final filteredByGroup = _filterGroup == 'Tutti'
         ? activeExercises
         : activeExercises.where((e) => e.muscleGroup == _filterGroup).toList();
+
+    final filtered = _searchQuery.isEmpty
+        ? filteredByGroup
+        : filteredByGroup
+              .where(
+                (e) =>
+                    e.name.toLowerCase().contains(_searchQuery.toLowerCase()),
+              )
+              .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -96,13 +111,42 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _nameController,
-              autofocus: true,
               decoration: const InputDecoration(
                 hintText: 'Nome scheda (es. Giorno 3A)',
                 prefixIcon: Icon(Icons.edit, color: AppTheme.primaryColor),
               ),
             ),
           ),
+
+          // Search field
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Cerca esercizio...',
+                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.white54),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
 
           // Filter chips
           SizedBox(
