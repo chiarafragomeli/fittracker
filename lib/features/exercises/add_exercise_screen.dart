@@ -17,8 +17,16 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
   MetricType _metricType = MetricType.reps;
 
   final List<String> _muscleGroups = [
-    'Gambe', 'Glutei', 'Schiena', 'Petto', 'Spalle',
-    'Bicipiti', 'Tricipiti', 'Core', 'Riscaldamento', 'Altro',
+    'Gambe',
+    'Glutei',
+    'Schiena',
+    'Petto',
+    'Spalle',
+    'Bicipiti',
+    'Tricipiti',
+    'Core',
+    'Riscaldamento',
+    'Altro',
   ];
 
   @override
@@ -35,10 +43,9 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
       );
       return;
     }
-    ref.read(exercisesProvider.notifier).addExercise(
-      name, _selectedGroup,
-      metricType: _metricType,
-    );
+    ref
+        .read(exercisesProvider.notifier)
+        .addExercise(name, _selectedGroup, metricType: _metricType);
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -60,7 +67,14 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text('Salva', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
+            child: const Text(
+              'Salva',
+              style: TextStyle(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ),
         ],
       ),
@@ -69,7 +83,14 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Nome esercizio', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Text(
+              'Nome esercizio',
+              style: TextStyle(
+                color: AppTheme.textSecondaryColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
@@ -77,11 +98,21 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 hintText: 'es. Leg press',
-                prefixIcon: Icon(Icons.fitness_center, color: AppTheme.primaryColor),
+                prefixIcon: Icon(
+                  Icons.fitness_center,
+                  color: AppTheme.primaryColor,
+                ),
               ),
             ),
             const SizedBox(height: 28),
-            const Text('Gruppo muscolare', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Text(
+              'Gruppo muscolare',
+              style: TextStyle(
+                color: AppTheme.textSecondaryColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -92,19 +123,30 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
                   onTap: () => setState(() => _selectedGroup = group),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
-                      color: selected ? AppTheme.primaryColor : AppTheme.surfaceColor,
+                      color: selected
+                          ? AppTheme.primaryColor
+                          : AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: selected ? AppTheme.primaryColor : Colors.white12,
+                        color: selected
+                            ? AppTheme.primaryColor
+                            : Colors.white12,
                       ),
                     ),
                     child: Text(
                       group,
                       style: TextStyle(
-                        color: selected ? Colors.white : AppTheme.textSecondaryColor,
-                        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                        color: selected
+                            ? Colors.white
+                            : AppTheme.textSecondaryColor,
+                        fontWeight: selected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         fontSize: 14,
                       ),
                     ),
@@ -113,7 +155,14 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
               }).toList(),
             ),
             const SizedBox(height: 28),
-            const Text('Tipo di misurazione', style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Text(
+              'Tipo di misurazione',
+              style: TextStyle(
+                color: AppTheme.textSecondaryColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -124,22 +173,36 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        color: _metricType == MetricType.reps ? AppTheme.primaryColor : AppTheme.surfaceColor,
+                        color: _metricType == MetricType.reps
+                            ? AppTheme.primaryColor
+                            : AppTheme.surfaceColor,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: _metricType == MetricType.reps ? AppTheme.primaryColor : Colors.white12,
+                          color: _metricType == MetricType.reps
+                              ? AppTheme.primaryColor
+                              : Colors.white12,
                         ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.fitness_center, size: 18,
-                              color: _metricType == MetricType.reps ? Colors.white : AppTheme.textSecondaryColor),
+                          Icon(
+                            Icons.fitness_center,
+                            size: 18,
+                            color: _metricType == MetricType.reps
+                                ? Colors.white
+                                : AppTheme.textSecondaryColor,
+                          ),
                           const SizedBox(width: 8),
-                          Text('Ripetizioni',
+                          Text(
+                            'Ripetizioni',
                             style: TextStyle(
-                              color: _metricType == MetricType.reps ? Colors.white : AppTheme.textSecondaryColor,
-                              fontWeight: _metricType == MetricType.reps ? FontWeight.bold : FontWeight.normal,
+                              color: _metricType == MetricType.reps
+                                  ? Colors.white
+                                  : AppTheme.textSecondaryColor,
+                              fontWeight: _metricType == MetricType.reps
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -150,27 +213,42 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => setState(() => _metricType = MetricType.duration),
+                    onTap: () =>
+                        setState(() => _metricType = MetricType.duration),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        color: _metricType == MetricType.duration ? AppTheme.primaryColor : AppTheme.surfaceColor,
+                        color: _metricType == MetricType.duration
+                            ? AppTheme.primaryColor
+                            : AppTheme.surfaceColor,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: _metricType == MetricType.duration ? AppTheme.primaryColor : Colors.white12,
+                          color: _metricType == MetricType.duration
+                              ? AppTheme.primaryColor
+                              : Colors.white12,
                         ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.timer, size: 18,
-                              color: _metricType == MetricType.duration ? Colors.white : AppTheme.textSecondaryColor),
+                          Icon(
+                            Icons.timer,
+                            size: 18,
+                            color: _metricType == MetricType.duration
+                                ? Colors.white
+                                : AppTheme.textSecondaryColor,
+                          ),
                           const SizedBox(width: 8),
-                          Text('Tempo',
+                          Text(
+                            'Tempo',
                             style: TextStyle(
-                              color: _metricType == MetricType.duration ? Colors.white : AppTheme.textSecondaryColor,
-                              fontWeight: _metricType == MetricType.duration ? FontWeight.bold : FontWeight.normal,
+                              color: _metricType == MetricType.duration
+                                  ? Colors.white
+                                  : AppTheme.textSecondaryColor,
+                              fontWeight: _metricType == MetricType.duration
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -190,7 +268,9 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
                 label: const Text('Aggiungi Esercizio'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
               ),
             ),

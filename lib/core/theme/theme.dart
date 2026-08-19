@@ -22,14 +22,19 @@ class AppTheme {
         surface: surfaceColor,
         error: errorColor,
       ),
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData.dark().textTheme,
-      ).copyWith(
-        displayLarge: const TextStyle(color: textPrimaryColor, fontWeight: FontWeight.bold),
-        titleLarge: const TextStyle(color: textPrimaryColor, fontWeight: FontWeight.bold),
-        bodyLarge: const TextStyle(color: textPrimaryColor),
-        bodyMedium: const TextStyle(color: textSecondaryColor),
-      ),
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme)
+          .copyWith(
+            displayLarge: const TextStyle(
+              color: textPrimaryColor,
+              fontWeight: FontWeight.bold,
+            ),
+            titleLarge: const TextStyle(
+              color: textPrimaryColor,
+              fontWeight: FontWeight.bold,
+            ),
+            bodyLarge: const TextStyle(color: textPrimaryColor),
+            bodyMedium: const TextStyle(color: textSecondaryColor),
+          ),
       appBarTheme: const AppBarTheme(
         backgroundColor: backgroundColor,
         elevation: 0,
@@ -51,9 +56,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: surfaceColor,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -63,10 +66,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -77,7 +77,10 @@ class AppTheme {
           borderSide: BorderSide.none,
         ),
         hintStyle: const TextStyle(color: textSecondaryColor),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }

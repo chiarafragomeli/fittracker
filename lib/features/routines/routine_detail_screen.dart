@@ -6,13 +6,15 @@ import '../exercises/exercises_provider.dart';
 import '../routines/routines_provider.dart';
 import '../workout/workout_provider.dart';
 import '../workout/active_workout_screen.dart';
+import 'create_routine_screen.dart';
 
 class RoutineDetailScreen extends ConsumerStatefulWidget {
   final Routine routine;
   const RoutineDetailScreen({super.key, required this.routine});
 
   @override
-  ConsumerState<RoutineDetailScreen> createState() => _RoutineDetailScreenState();
+  ConsumerState<RoutineDetailScreen> createState() =>
+      _RoutineDetailScreenState();
 }
 
 class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
@@ -22,20 +24,33 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-load existing configs or create defaults
+    _loadConfigs();
+  }
+
+  @override
+  void didUpdateWidget(covariant RoutineDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.routine.id != widget.routine.id ||
+        oldWidget.routine.exerciseIds.length !=
+            widget.routine.exerciseIds.length) {
+      _loadConfigs();
+    }
+  }
+
+  void _loadConfigs() {
     _configs = {};
     for (final exId in widget.routine.exerciseIds) {
-      _configs[exId] = widget.routine.exerciseConfigs[exId] ??
+      _configs[exId] =
+          widget.routine.exerciseConfigs[exId] ??
           ExerciseConfig(exerciseId: exId);
     }
   }
 
   void _saveConfigs() {
     // Save updated configs back to Hive via provider
-    ref.read(routinesProvider.notifier).updateRoutineConfigs(
-          widget.routine.id,
-          _configs,
-        );
+    ref
+        .read(routinesProvider.notifier)
+        .updateRoutineConfigs(widget.routine.id, _configs);
   }
 
   void _showConfigSheet(String exId, String exName, Exercise? exercise) {
@@ -56,7 +71,9 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
           padding: EdgeInsets.only(
-            left: 24, right: 24, top: 24,
+            left: 24,
+            right: 24,
+            top: 24,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
           ),
           child: Column(
@@ -66,7 +83,8 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               // Handle bar
               Center(
                 child: Container(
-                  width: 40, height: 4,
+                  width: 40,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(2),
@@ -77,17 +95,32 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(exName,
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      exName,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   if (isDuration)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.orangeAccent.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Text('⏱ Tempo', style: TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        '⏱ Tempo',
+                        style: TextStyle(
+                          color: Colors.orangeAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -100,8 +133,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                 value: sets,
                 min: 1,
                 max: 10,
-                onDecrement: () => setSheetState(() => sets = (sets - 1).clamp(1, 10)),
-                onIncrement: () => setSheetState(() => sets = (sets + 1).clamp(1, 10)),
+                onDecrement: () =>
+                    setSheetState(() => sets = (sets - 1).clamp(1, 10)),
+                onIncrement: () =>
+                    setSheetState(() => sets = (sets + 1).clamp(1, 10)),
               ),
               const SizedBox(height: 16),
 
@@ -114,8 +149,12 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                   min: 0,
                   max: 300,
                   step: 1,
-                  onDecrement: () => setSheetState(() => duration = (duration - 1).clamp(0, 300)),
-                  onIncrement: () => setSheetState(() => duration = (duration + 1).clamp(0, 300)),
+                  onDecrement: () => setSheetState(
+                    () => duration = (duration - 1).clamp(0, 300),
+                  ),
+                  onIncrement: () => setSheetState(
+                    () => duration = (duration + 1).clamp(0, 300),
+                  ),
                 )
               else
                 _ConfigRow(
@@ -124,8 +163,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                   value: reps,
                   min: 1,
                   max: 50,
-                  onDecrement: () => setSheetState(() => reps = (reps - 1).clamp(1, 50)),
-                  onIncrement: () => setSheetState(() => reps = (reps + 1).clamp(1, 50)),
+                  onDecrement: () =>
+                      setSheetState(() => reps = (reps - 1).clamp(1, 50)),
+                  onIncrement: () =>
+                      setSheetState(() => reps = (reps + 1).clamp(1, 50)),
                 ),
               const SizedBox(height: 16),
 
@@ -137,8 +178,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                 min: 15,
                 max: 300,
                 step: 15,
-                onDecrement: () => setSheetState(() => rest = (rest - 15).clamp(15, 300)),
-                onIncrement: () => setSheetState(() => rest = (rest + 15).clamp(15, 300)),
+                onDecrement: () =>
+                    setSheetState(() => rest = (rest - 15).clamp(15, 300)),
+                onIncrement: () =>
+                    setSheetState(() => rest = (rest + 15).clamp(15, 300)),
               ),
               const SizedBox(height: 28),
 
@@ -160,10 +203,15 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text('Salva', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Salva',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -177,14 +225,47 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
   Widget build(BuildContext context) {
     final allExercises = ref.watch(exercisesProvider);
     final exerciseMap = {for (var e in allExercises) e.id: e};
+    final routines = ref.watch(routinesProvider);
+    final currentRoutine = routines.firstWhere(
+      (r) => r.id == widget.routine.id,
+      orElse: () => widget.routine,
+    );
+
+    // Clean up any hard-deleted/orphaned exercise IDs
+    final validExerciseIds = currentRoutine.exerciseIds
+        .where((id) => exerciseMap.containsKey(id))
+        .toList();
+
+    // Make sure configs are updated if exercises were added or swapped
+    for (final exId in validExerciseIds) {
+      if (!_configs.containsKey(exId)) {
+        _configs[exId] =
+            currentRoutine.exerciseConfigs[exId] ??
+            ExerciseConfig(exerciseId: exId);
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.routine.name, style: const TextStyle(fontSize: 16)),
+        title: Text(currentRoutine.name, style: const TextStyle(fontSize: 16)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      CreateRoutineScreen(routine: currentRoutine),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -204,68 +285,137 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.routine.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  currentRoutine.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text('${widget.routine.exerciseIds.length} esercizi  •  Tocca un esercizio per configurarlo',
-                    style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                Text(
+                  '${validExerciseIds.length} esercizi  •  Tocca un esercizio per configurarlo',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
               ],
             ),
           ),
 
           // Exercise list
           Expanded(
-            child: widget.routine.exerciseIds.isEmpty
+            child: validExerciseIds.isEmpty
                 ? const Center(child: Text('Nessun esercizio in questa scheda'))
-                : ListView.builder(
+                : ReorderableListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: widget.routine.exerciseIds.length,
+                    itemCount: validExerciseIds.length,
+                    onReorder: (oldIndex, newIndex) {
+                      if (oldIndex < newIndex) {
+                        newIndex -= 1;
+                      }
+                      final exerciseIds = List<String>.from(validExerciseIds);
+                      final item = exerciseIds.removeAt(oldIndex);
+                      exerciseIds.insert(newIndex, item);
+
+                      ref
+                          .read(routinesProvider.notifier)
+                          .updateRoutine(
+                            currentRoutine.id,
+                            currentRoutine.name,
+                            exerciseIds,
+                          );
+                    },
+                    proxyDecorator: (child, index, animation) => child,
                     itemBuilder: (context, index) {
-                      final exId = widget.routine.exerciseIds[index];
-                      final ex = exerciseMap[exId];
-                      if (ex == null) return const SizedBox.shrink();
+                      final exId = validExerciseIds[index];
+                      final ex = exerciseMap[exId]!;
                       final cfg = _configs[exId]!;
 
                       return GestureDetector(
+                        key: ValueKey(exId),
                         onTap: () => _showConfigSheet(exId, ex.name, ex),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: AppTheme.surfaceColor,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
+                              ReorderableDragStartListener(
+                                index: index,
+                                child: Container(
+                                  padding: const EdgeInsets.only(
+                                    right: 12,
+                                    top: 10,
+                                    bottom: 10,
+                                  ),
+                                  color: Colors.transparent,
+                                  child: const Icon(
+                                    Icons.drag_handle,
+                                    color: Colors.white24,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
                               CircleAvatar(
-                                backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.15),
+                                backgroundColor: AppTheme.primaryColor
+                                    .withValues(alpha: 0.15),
                                 radius: 18,
-                                child: Text('${index + 1}',
-                                    style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                                child: Text(
+                                  '${index + 1}',
+                                  style: const TextStyle(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(ex.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                    Text(
+                                      ex.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     // Config summary chips
                                     Row(
                                       children: [
-                                        _MiniChip(label: '${cfg.defaultSets} serie'),
+                                        _MiniChip(
+                                          label: '${cfg.defaultSets} serie',
+                                        ),
                                         const SizedBox(width: 6),
-                                        _MiniChip(label: ex.metricType == MetricType.duration
-                                            ? '${cfg.defaultDuration}s'
-                                            : '${cfg.defaultReps} reps'),
+                                        _MiniChip(
+                                          label:
+                                              ex.metricType ==
+                                                  MetricType.duration
+                                              ? '${cfg.defaultDuration}s'
+                                              : '${cfg.defaultReps} reps',
+                                        ),
                                         const SizedBox(width: 6),
-                                        _MiniChip(label: '${cfg.restSeconds}s pausa'),
+                                        _MiniChip(
+                                          label: '${cfg.restSeconds}s pausa',
+                                        ),
                                       ],
                                     ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.edit_outlined, color: AppTheme.textSecondaryColor, size: 18),
+                              const Icon(
+                                Icons.edit_outlined,
+                                color: AppTheme.textSecondaryColor,
+                                size: 18,
+                              ),
                             ],
                           ),
                         ),
@@ -285,22 +435,28 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                   onPressed: () {
                     // Pass the updated routine with latest configs
                     final updatedRoutine = Routine(
-                      id: widget.routine.id,
-                      name: widget.routine.name,
-                      exerciseIds: widget.routine.exerciseIds,
+                      id: currentRoutine.id,
+                      name: currentRoutine.name,
+                      exerciseIds: currentRoutine.exerciseIds,
                       exerciseConfigs: _configs,
                     );
-                    ref.read(workoutProvider.notifier).startWorkout(updatedRoutine);
+                    ref
+                        .read(workoutProvider.notifier)
+                        .startWorkout(updatedRoutine);
                     // Ritorna alla home dove il MainNavigationScreen catturerà il tracking e lo mostrerà
                     Navigator.pop(context);
                   },
                   icon: const Icon(Icons.play_arrow, size: 28),
-                  label: const Text('AVVIA ALLENAMENTO',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    'AVVIA ALLENAMENTO',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ),
@@ -342,7 +498,10 @@ class _ConfigRow extends StatelessWidget {
         Icon(icon, color: AppTheme.primaryColor, size: 20),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+          ),
         ),
         Row(
           children: [
@@ -353,8 +512,13 @@ class _ConfigRow extends StatelessWidget {
             Container(
               width: 52,
               alignment: Alignment.center,
-              child: Text('$value',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text(
+                '$value',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             _RoundButton(
               icon: Icons.add,
@@ -378,14 +542,19 @@ class _RoundButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36, height: 36,
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
-          color: onTap != null ? AppTheme.primaryColor.withValues(alpha: 0.15) : Colors.white10,
+          color: onTap != null
+              ? AppTheme.primaryColor.withValues(alpha: 0.15)
+              : Colors.white10,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon,
-            size: 18,
-            color: onTap != null ? AppTheme.primaryColor : Colors.white24),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap != null ? AppTheme.primaryColor : Colors.white24,
+        ),
       ),
     );
   }
@@ -403,7 +572,14 @@ class _MiniChip extends StatelessWidget {
         color: AppTheme.primaryColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(label, style: const TextStyle(color: AppTheme.primaryColor, fontSize: 11, fontWeight: FontWeight.w600)),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppTheme.primaryColor,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

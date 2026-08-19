@@ -10,6 +10,7 @@ import 'features/exercises/exercises_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/workout/workout_provider.dart';
 import 'features/workout/active_workout_screen.dart';
+import 'import_csv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,13 @@ void main() async {
   await Hive.openBox<WorkoutLog>('workout_logs');
 
   await initializeDateFormatting('it_IT', null);
+
+  // Import old workouts if missing
+  try {
+    await importWorkoutsFromCsv();
+  } catch (e) {
+    print("Error importing: $e");
+  }
 
   runApp(const ProviderScope(child: GymTrackerApp()));
 }
@@ -51,6 +59,11 @@ class GymTrackerApp extends ConsumerWidget {
       theme: AppTheme.darkTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: child,
+      ),
     );
   }
 }
@@ -58,7 +71,8 @@ class GymTrackerApp extends ConsumerWidget {
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
   @override
-  ConsumerState<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  ConsumerState<MainNavigationScreen> createState() =>
+      _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
@@ -74,7 +88,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final workoutState = ref.watch(workoutProvider);
-    final isWorkingOut = workoutState.isTracking && workoutState.activeRoutine != null;
+    final isWorkingOut =
+        workoutState.isTracking && workoutState.activeRoutine != null;
     final showMiniBanner = isWorkingOut && workoutState.isMinimized;
 
     return Stack(
@@ -92,15 +107,25 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                   },
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [AppTheme.primaryColor, AppTheme.primaryColor.withValues(alpha: 0.7)],
+                        colors: [
+                          AppTheme.primaryColor,
+                          AppTheme.primaryColor.withValues(alpha: 0.7),
+                        ],
                       ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.fitness_center, color: Colors.white, size: 18),
+                        const Icon(
+                          Icons.fitness_center,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -109,33 +134,59 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                               Text(
                                 workoutState.activeRoutine!.name,
                                 style: const TextStyle(
-                                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               Text(
                                 _formatDuration(workoutState.elapsedTime),
-                                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        if (workoutState.restTimer != null && workoutState.restTimer!.inSeconds > 0) ...[
+                        if (workoutState.restTimer != null &&
+                            workoutState.restTimer!.inSeconds > 0) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Row(children: [
-                              const Icon(Icons.bedtime_outlined, size: 12, color: Colors.white),
-                              const SizedBox(width: 4),
-                              Text(_formatDuration(workoutState.restTimer!),
-                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                            ]),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.bedtime_outlined,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatDuration(workoutState.restTimer!),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 8),
                         ],
-                        const Icon(Icons.chevron_right, color: Colors.white, size: 20),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ],
                     ),
                   ),
@@ -144,9 +195,18 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                 currentIndex: _currentIndex,
                 onTap: (index) => setState(() => _currentIndex = index),
                 items: const [
-                  BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Schede'),
-                  BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'Esercizi'),
-                  BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profilo'),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.list),
+                    label: 'Schede',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.fitness_center),
+                    label: 'Esercizi',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.person),
+                    label: 'Profilo',
+                  ),
                 ],
               ),
             ],

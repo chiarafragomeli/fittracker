@@ -4,17 +4,28 @@ import '../../core/theme/theme.dart';
 import '../exercises/exercises_provider.dart';
 import 'routines_provider.dart';
 
+import '../../core/database/models.dart'; // Needed for Routine class
+
 class CreateRoutineScreen extends ConsumerStatefulWidget {
-  const CreateRoutineScreen({super.key});
+  final Routine? routine;
+  const CreateRoutineScreen({super.key, this.routine});
 
   @override
-  ConsumerState<CreateRoutineScreen> createState() => _CreateRoutineScreenState();
+  ConsumerState<CreateRoutineScreen> createState() =>
+      _CreateRoutineScreenState();
 }
 
 class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
-  final _nameController = TextEditingController();
-  final List<String> _selectedExerciseIds = [];
+  late final TextEditingController _nameController;
+  late final List<String> _selectedExerciseIds;
   String _filterGroup = 'Tutti';
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.routine?.name ?? '');
+    _selectedExerciseIds = List.from(widget.routine?.exerciseIds ?? []);
+  }
 
   @override
   void dispose() {
@@ -30,21 +41,36 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
       );
       return;
     }
-    ref.read(routinesProvider.notifier).addRoutine(name, _selectedExerciseIds);
+
+    if (widget.routine != null) {
+      ref
+          .read(routinesProvider.notifier)
+          .updateRoutine(widget.routine!.id, name, _selectedExerciseIds);
+    } else {
+      ref
+          .read(routinesProvider.notifier)
+          .addRoutine(name, _selectedExerciseIds);
+    }
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final allExercises = ref.watch(exercisesProvider);
-    final groups = ['Tutti', ...{for (var e in allExercises) e.muscleGroup}];
+    final activeExercises = allExercises.where((e) => !e.isDeleted).toList();
+    final groups = [
+      'Tutti',
+      ...{for (var e in activeExercises) e.muscleGroup},
+    ];
     final filtered = _filterGroup == 'Tutti'
-        ? allExercises
-        : allExercises.where((e) => e.muscleGroup == _filterGroup).toList();
+        ? activeExercises
+        : activeExercises.where((e) => e.muscleGroup == _filterGroup).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nuova Scheda'),
+        title: Text(
+          widget.routine != null ? 'Modifica Scheda' : 'Nuova Scheda',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
@@ -52,7 +78,14 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
         actions: [
           TextButton(
             onPressed: _save,
-            child: const Text('Salva', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 16)),
+            child: const Text(
+              'Salva',
+              style: TextStyle(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ),
         ],
       ),
@@ -88,11 +121,19 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                     selectedColor: AppTheme.primaryColor.withValues(alpha: 0.2),
                     checkmarkColor: AppTheme.primaryColor,
                     labelStyle: TextStyle(
-                      color: selected ? AppTheme.primaryColor : AppTheme.textSecondaryColor,
-                      fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                      color: selected
+                          ? AppTheme.primaryColor
+                          : AppTheme.textSecondaryColor,
+                      fontWeight: selected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                     backgroundColor: AppTheme.surfaceColor,
-                    side: BorderSide(color: selected ? AppTheme.primaryColor : Colors.transparent),
+                    side: BorderSide(
+                      color: selected
+                          ? AppTheme.primaryColor
+                          : Colors.transparent,
+                    ),
                   ),
                 );
               }).toList(),
@@ -105,10 +146,19 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: AppTheme.primaryColor, size: 16),
+                  const Icon(
+                    Icons.check_circle,
+                    color: AppTheme.primaryColor,
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
-                  Text('${_selectedExerciseIds.length} esercizi selezionati',
-                      style: const TextStyle(color: AppTheme.primaryColor, fontSize: 13)),
+                  Text(
+                    '${_selectedExerciseIds.length} esercizi selezionati',
+                    style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -134,12 +184,19 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.15) : AppTheme.surfaceColor,
+                      color: isSelected
+                          ? AppTheme.primaryColor.withValues(alpha: 0.15)
+                          : AppTheme.surfaceColor,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                        color: isSelected
+                            ? AppTheme.primaryColor
+                            : Colors.transparent,
                         width: 1.5,
                       ),
                     ),
@@ -147,14 +204,25 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                       children: [
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          width: 24, height: 24,
+                          width: 24,
+                          height: 24,
                           decoration: BoxDecoration(
-                            color: isSelected ? AppTheme.primaryColor : Colors.transparent,
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: isSelected ? AppTheme.primaryColor : Colors.white30),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppTheme.primaryColor
+                                  : Colors.white30,
+                            ),
                           ),
                           child: isSelected
-                              ? const Icon(Icons.check, color: Colors.white, size: 16)
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 16,
+                                )
                               : null,
                         ),
                         const SizedBox(width: 12),
@@ -162,15 +230,31 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(ex.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                              Text(ex.muscleGroup, style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12)),
+                              Text(
+                                ex.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                ex.muscleGroup,
+                                style: const TextStyle(
+                                  color: AppTheme.textSecondaryColor,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         if (isSelected)
                           Text(
                             '${_selectedExerciseIds.indexOf(ex.id) + 1}°',
-                            style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: const TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
                           ),
                       ],
                     ),

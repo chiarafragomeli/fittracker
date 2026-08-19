@@ -20,7 +20,11 @@ class WatchConnector {
   }
 
   /// Sincronizza l'aggiunta di un nuovo set (es. 10 reps x 50kg)
-  Future<void> sendSetLogged(String exerciseName, int reps, double weight) async {
+  Future<void> sendSetLogged(
+    String exerciseName,
+    int reps,
+    double weight,
+  ) async {
     try {
       await _channel.invokeMethod('setLogged', {
         'exercise': exerciseName,
@@ -42,7 +46,9 @@ class WatchConnector {
   }
 
   /// Ascolta messaggi in ingresso dall'Apple Watch (es. utente preme "Fine Set" dal polso)
-  void initializeListener(Function(String, Map<String, dynamic>) onMessageReceived) {
+  void initializeListener(
+    Function(String, Map<String, dynamic>) onMessageReceived,
+  ) {
     _channel.setMethodCallHandler((call) async {
       final args = Map<String, dynamic>.from(call.arguments as Map);
       onMessageReceived(call.method, args);

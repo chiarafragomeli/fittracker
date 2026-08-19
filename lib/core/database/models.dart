@@ -11,6 +11,7 @@ class Exercise {
   bool isCustom;
   String notes; // Note di esecuzione
   MetricType metricType;
+  bool isDeleted;
 
   Exercise({
     required this.id,
@@ -19,6 +20,7 @@ class Exercise {
     this.isCustom = false,
     this.notes = '',
     this.metricType = MetricType.reps,
+    this.isDeleted = false,
   });
 }
 
@@ -82,6 +84,7 @@ class Routine {
   final String id;
   final String name;
   final List<String> exerciseIds;
+
   /// Configurazioni per esercizio: mappa exerciseId -> ExerciseConfig
   final Map<String, ExerciseConfig> exerciseConfigs;
 
@@ -122,10 +125,26 @@ class ExerciseAdapter extends TypeAdapter<Exercise> {
     final muscleGroup = reader.readString();
     final isCustom = reader.readBool();
     String notes = '';
-    try { notes = reader.readString(); } catch (_) {}
+    try {
+      notes = reader.readString();
+    } catch (_) {}
     int metricIdx = 0;
-    try { metricIdx = reader.readInt(); } catch (_) {}
-    return Exercise(id: id, name: name, muscleGroup: muscleGroup, isCustom: isCustom, notes: notes, metricType: MetricType.values[metricIdx.clamp(0, 1)]);
+    try {
+      metricIdx = reader.readInt();
+    } catch (_) {}
+    bool isDeleted = false;
+    try {
+      isDeleted = reader.readBool();
+    } catch (_) {}
+    return Exercise(
+      id: id,
+      name: name,
+      muscleGroup: muscleGroup,
+      isCustom: isCustom,
+      notes: notes,
+      metricType: MetricType.values[metricIdx.clamp(0, 1)],
+      isDeleted: isDeleted,
+    );
   }
 
   @override
@@ -136,6 +155,7 @@ class ExerciseAdapter extends TypeAdapter<Exercise> {
     writer.writeBool(obj.isCustom);
     writer.writeString(obj.notes);
     writer.writeInt(obj.metricType.index);
+    writer.writeBool(obj.isDeleted);
   }
 }
 
@@ -151,8 +171,17 @@ class WorkoutSetAdapter extends TypeAdapter<WorkoutSet> {
     final reps = reader.readInt();
     final isCompleted = reader.readBool();
     int dur = 0;
-    try { dur = reader.readInt(); } catch (_) {}
-    return WorkoutSet(id: id, exerciseId: exerciseId, weight: weight, reps: reps, isCompleted: isCompleted, durationSeconds: dur);
+    try {
+      dur = reader.readInt();
+    } catch (_) {}
+    return WorkoutSet(
+      id: id,
+      exerciseId: exerciseId,
+      weight: weight,
+      reps: reps,
+      isCompleted: isCompleted,
+      durationSeconds: dur,
+    );
   }
 
   @override
@@ -186,9 +215,13 @@ class RoutineAdapter extends TypeAdapter<Routine> {
         final reps = reader.readInt();
         final rest = reader.readInt();
         String rNotes = '';
-        try { rNotes = reader.readString(); } catch (_) {}
+        try {
+          rNotes = reader.readString();
+        } catch (_) {}
         int dur = 30;
-        try { dur = reader.readInt(); } catch (_) {}
+        try {
+          dur = reader.readInt();
+        } catch (_) {}
         configs[exId] = ExerciseConfig(
           exerciseId: exId,
           defaultSets: sets,

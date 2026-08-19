@@ -51,7 +51,11 @@ class RoutinesScreen extends ConsumerWidget {
                       '${routine.exerciseIds.length} Esercizi',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    trailing: const Icon(Icons.play_circle_fill, color: AppTheme.primaryColor, size: 40,),
+                    trailing: const Icon(
+                      Icons.play_circle_fill,
+                      color: AppTheme.primaryColor,
+                      size: 40,
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,

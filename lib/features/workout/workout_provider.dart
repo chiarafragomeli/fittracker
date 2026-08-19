@@ -56,7 +56,8 @@ class WorkoutState {
       isMinimized: isMinimized ?? this.isMinimized,
       elapsedTime: elapsedTime ?? this.elapsedTime,
       restTimer: clearRestTimer ? null : (restTimer ?? this.restTimer),
-      restTimerJustFinished: restTimerJustFinished ?? this.restTimerJustFinished,
+      restTimerJustFinished:
+          restTimerJustFinished ?? this.restTimerJustFinished,
     );
   }
 }
@@ -79,12 +80,13 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
       startTime: DateTime.now(),
       sets: [],
     );
-    
+
     // Inizializza i set correnti
     final exerciseBox = Hive.box<Exercise>('exercises');
     final initialSets = <String, List<Map<String, dynamic>>>{};
     for (final exId in routine.exerciseIds) {
-      final cfg = routine.exerciseConfigs[exId] ?? ExerciseConfig(exerciseId: exId);
+      final cfg =
+          routine.exerciseConfigs[exId] ?? ExerciseConfig(exerciseId: exId);
       final exercise = exerciseBox.get(exId);
       final isDuration = exercise?.metricType == MetricType.duration;
       initialSets[exId] = List.generate(
@@ -92,7 +94,10 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
         (_) => {
           'weight': 0.0,
           'done': false,
-          if (isDuration) 'duration': cfg.defaultDuration else 'reps': cfg.defaultReps,
+          if (isDuration)
+            'duration': cfg.defaultDuration
+          else
+            'reps': cfg.defaultReps,
           'metricType': isDuration ? 'duration' : 'reps',
         },
       );
@@ -109,15 +114,28 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
 
     _startTimer();
   }
-  
+
   void updateActiveSets(Map<String, List<Map<String, dynamic>>> newSets) {
     state = state.copyWith(activeSets: newSets);
   }
-  
+
+  void updateWorkoutName(String newName) {
+    if (state.currentWorkout == null) return;
+    state = state.copyWith(
+      currentWorkout: WorkoutLog(
+        id: state.currentWorkout!.id,
+        name: newName,
+        startTime: state.currentWorkout!.startTime,
+        endTime: state.currentWorkout!.endTime,
+        sets: state.currentWorkout!.sets,
+      ),
+    );
+  }
+
   void minimizeWorkout() {
     state = state.copyWith(isMinimized: true);
   }
-  
+
   void maximizeWorkout() {
     state = state.copyWith(isMinimized: false);
   }
@@ -181,19 +199,23 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
 
   void finishWorkout() {
     if (state.currentWorkout == null || state.activeSets == null) return;
-    
+
     final List<WorkoutSet> completedSets = [];
     state.activeSets!.forEach((exId, setsList) {
       for (final setMap in setsList) {
         final isDuration = setMap['metricType'] == 'duration';
-        completedSets.add(WorkoutSet(
-          id: DateTime.now().microsecondsSinceEpoch.toString() + '_' + exId,
-          exerciseId: exId,
-          weight: (setMap['weight'] as num).toDouble(),
-          reps: isDuration ? 0 : (setMap['reps'] as num).toInt(),
-          durationSeconds: isDuration ? (setMap['duration'] ?? 0 as num).toInt() : 0,
-          isCompleted: setMap['done'] as bool,
-        ));
+        completedSets.add(
+          WorkoutSet(
+            id: DateTime.now().microsecondsSinceEpoch.toString() + '_' + exId,
+            exerciseId: exId,
+            weight: (setMap['weight'] as num).toDouble(),
+            reps: isDuration ? 0 : (setMap['reps'] as num).toInt(),
+            durationSeconds: isDuration
+                ? (setMap['duration'] ?? 0 as num).toInt()
+                : 0,
+            isCompleted: setMap['done'] as bool,
+          ),
+        );
       }
     });
 
