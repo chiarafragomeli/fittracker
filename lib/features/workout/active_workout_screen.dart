@@ -7,6 +7,10 @@ import '../exercises/exercises_provider.dart';
 import '../workout/workout_provider.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
+import 'components/duration_timer_field.dart';
+import 'components/number_field.dart';
+
+import 'components/rest_timer_overlay.dart';
 
 class ActiveWorkoutScreen extends ConsumerStatefulWidget {
   final Routine routine;
@@ -101,48 +105,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
   void _showRestDoneOverlay() {
     _restDoneOverlay?.remove();
-    _restDoneOverlay = OverlayEntry(
-      builder: (ctx) => Positioned(
-        top: MediaQuery.of(ctx).padding.top + 56,
-        left: 16,
-        right: 16,
-        child: Material(
-          color: Colors.transparent,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 400),
-            builder: (_, v, child) => Opacity(opacity: v, child: child),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppTheme.successColor,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.successColor.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                  ),
-                ],
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white, size: 22),
-                  SizedBox(width: 12),
-                  Text(
-                    '⏱️ Pausa terminata! Riprendi.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    _restDoneOverlay = RestTimerOverlay.buildEntry(context);
     Overlay.of(context).insert(_restDoneOverlay!);
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
@@ -367,6 +330,8 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                   ],
                 ),
               );
+              ctrl.dispose();
+              if (!mounted) return;
               if (newName != null &&
                   newName.isNotEmpty &&
                   newName != currentName) {
@@ -752,7 +717,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             ),
                             // Weight field (same for both types)
                             Expanded(
-                              child: _NumberField(
+                              child: NumberField(
                                 value: set['weight'],
                                 isDecimal: true,
                                 onChanged: (v) {
@@ -765,7 +730,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                             // Reps field or Duration timer
                             Expanded(
                               child: isDuration
-                                  ? _DurationTimerField(
+                                  ? DurationTimerField(
                                       seconds:
                                           (set['duration'] as int?) ??
                                           (_exerciseTimerSeconds[timerKey] ??
@@ -783,7 +748,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                                         _saveSetsToProvider();
                                       },
                                     )
-                                  : _NumberField(
+                                  : NumberField(
                                       value: set['reps'],
                                       isDecimal: false,
                                       onChanged: (v) {
@@ -903,205 +868,4 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
 
 /// A widget that shows a Start/Stop timer for duration-based exercises,
 /// with the option to manually edit the recorded seconds.
-class _DurationTimerField extends StatelessWidget {
-  final int seconds;
-  final bool isRunning;
-  final bool isDone;
-  final VoidCallback onStart;
-  final VoidCallback onStop;
-  final Function(int) onManualEdit;
 
-  const _DurationTimerField({
-    required this.seconds,
-    required this.isRunning,
-    required this.isDone,
-    required this.onStart,
-    required this.onStop,
-    required this.onManualEdit,
-  });
-
-  String _fmt(int s) {
-    final m = (s ~/ 60).toString().padLeft(2, '0');
-    final sec = (s % 60).toString().padLeft(2, '0');
-    return '$m:$sec';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (isDone) {
-      // Show recorded duration as editable text
-      return GestureDetector(
-        onTap: () async {
-          final ctrl = TextEditingController(text: seconds.toString());
-          final result = await showDialog<int>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: AppTheme.surfaceColor,
-              title: const Text('Modifica durata (secondi)'),
-              content: TextField(
-                controller: ctrl,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                decoration: const InputDecoration(suffixText: 's'),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Annulla'),
-                ),
-                ElevatedButton(
-                  onPressed: () =>
-                      Navigator.pop(ctx, int.tryParse(ctrl.text) ?? seconds),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-          if (result != null) onManualEdit(result);
-        },
-        child: Container(
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppTheme.successColor.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              '${seconds}s',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: AppTheme.successColor,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Interactive timer: show current count and Start/Stop button
-    return GestureDetector(
-      onTap: isRunning ? onStop : onStart,
-      onLongPress: () async {
-        // Long press to manually edit
-        final ctrl = TextEditingController(text: seconds.toString());
-        final result = await showDialog<int>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppTheme.surfaceColor,
-            title: const Text('Modifica durata (secondi)'),
-            content: TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: const InputDecoration(suffixText: 's'),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Annulla'),
-              ),
-              ElevatedButton(
-                onPressed: () =>
-                    Navigator.pop(ctx, int.tryParse(ctrl.text) ?? seconds),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-        if (result != null) onManualEdit(result);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 36,
-        decoration: BoxDecoration(
-          color: isRunning
-              ? AppTheme.primaryColor.withValues(alpha: 0.2)
-              : AppTheme.backgroundColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isRunning ? AppTheme.primaryColor : Colors.white12,
-            width: isRunning ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isRunning ? Icons.stop : Icons.play_arrow,
-              size: 16,
-              color: isRunning ? AppTheme.primaryColor : Colors.white54,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              _fmt(seconds),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: isRunning ? AppTheme.primaryColor : Colors.white70,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NumberField extends StatefulWidget {
-  final dynamic value;
-  final bool isDecimal;
-  final Function(dynamic) onChanged;
-  const _NumberField({
-    required this.value,
-    required this.isDecimal,
-    required this.onChanged,
-  });
-  @override
-  State<_NumberField> createState() => _NumberFieldState();
-}
-
-class _NumberFieldState extends State<_NumberField> {
-  late TextEditingController _controller;
-  @override
-  void initState() {
-    super.initState();
-    final v = widget.value;
-    _controller = TextEditingController(
-      text: (v == 0 || v == 0.0) ? '' : v.toString(),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      keyboardType: TextInputType.numberWithOptions(decimal: widget.isDecimal),
-      textInputAction: TextInputAction.done,
-      textAlign: TextAlign.center,
-      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-      decoration: InputDecoration(
-        hintText: widget.isDecimal ? '0.0' : '0',
-        hintStyle: const TextStyle(color: Colors.white24),
-        filled: true,
-        fillColor: AppTheme.backgroundColor,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-      ),
-      onChanged: (v) {
-        final parsed = widget.isDecimal ? double.tryParse(v) : int.tryParse(v);
-        if (parsed != null) widget.onChanged(parsed);
-      },
-      onSubmitted: (_) => FocusScope.of(context).unfocus(),
-    );
-  }
-}
