@@ -32,7 +32,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           int weekly = 0;
           int monthly = 0;
 
-          final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+          final startOfWeek = DateTime(now.year, now.month, now.day)
+              .subtract(Duration(days: now.weekday - 1));
           final startOfMonth = DateTime(now.year, now.month, 1);
 
           for (final log in logs) {
@@ -41,14 +42,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 log.startTime.day == now.day) {
               daily++;
             }
-            if (log.startTime.isAfter(
-              startOfWeek.subtract(const Duration(days: 1)),
-            )) {
+            if (!log.startTime.isBefore(startOfWeek)) {
               weekly++;
             }
-            if (log.startTime.isAfter(
-              startOfMonth.subtract(const Duration(days: 1)),
-            )) {
+            if (!log.startTime.isBefore(startOfMonth)) {
               monthly++;
             }
           }

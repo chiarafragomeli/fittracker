@@ -88,6 +88,7 @@ Future<void> importWorkoutsFromCsv() async {
         metricType: durationSecs > 0 && reps == 0
             ? MetricType.duration
             : MetricType.reps,
+        isDeleted: true,
       );
       exercisesBox.put(newEx.id, newEx);
       exerciseMap[exerciseTitle] = newEx;

@@ -11,7 +11,9 @@ class AppTheme {
   static const Color successColor = Color(0xFF34C759);
   static const Color errorColor = Color(0xFFFF3B30);
 
-  static ThemeData get darkTheme {
+  static final ThemeData darkTheme = _buildDarkTheme();
+
+  static ThemeData _buildDarkTheme() {
     return ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: backgroundColor,

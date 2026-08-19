@@ -15,6 +15,7 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
   final _nameController = TextEditingController();
   String _selectedGroup = 'Gambe';
   MetricType _metricType = MetricType.reps;
+  bool _isSaving = false;
 
   final List<String> _muscleGroups = [
     'Gambe',
@@ -36,6 +37,7 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
   }
 
   void _save() {
+    if (_isSaving) return;
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,16 +45,19 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
       );
       return;
     }
+    _isSaving = true;
     ref
         .read(exercisesProvider.notifier)
         .addExercise(name, _selectedGroup, metricType: _metricType);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Esercizio "$name" aggiunto!'),
-        backgroundColor: AppTheme.successColor,
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Esercizio "$name" aggiunto!'),
+          backgroundColor: AppTheme.successColor,
+        ),
+      );
+    }
   }
 
   @override
@@ -78,7 +83,7 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +263,7 @@ class _AddExerciseScreenState extends ConsumerState<AddExerciseScreen> {
                 ),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
               height: 54,

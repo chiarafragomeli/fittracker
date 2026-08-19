@@ -46,11 +46,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       final allExercises = ref.read(exercisesProvider);
       final exerciseMap = {for (var e in allExercises) e.id: e};
       for (final exId in widget.routine.exerciseIds) {
+        final exercise = exerciseMap[exId];
+        // Skip deleted or missing exercises
+        if (exercise == null || exercise.isDeleted) continue;
+        
         final cfg =
             widget.routine.exerciseConfigs[exId] ??
             ExerciseConfig(exerciseId: exId);
-        final exercise = exerciseMap[exId];
-        final isDuration = exercise?.metricType == MetricType.duration;
+        final isDuration = exercise.metricType == MetricType.duration;
         _sets[exId] = List.generate(
           cfg.defaultSets,
           (_) => {
@@ -77,6 +80,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   @override
   void dispose() {
     _restDoneOverlay?.remove();
+    _restDoneOverlay = null;
     for (final t in _exerciseTimers.values) {
       t.cancel();
     }
@@ -141,8 +145,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
     Overlay.of(context).insert(_restDoneOverlay!);
     Future.delayed(const Duration(seconds: 3), () {
-      _restDoneOverlay?.remove();
-      _restDoneOverlay = null;
+      if (mounted) {
+        _restDoneOverlay?.remove();
+        _restDoneOverlay = null;
+      }
     });
   }
 
@@ -262,7 +268,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
         ],
       ),
     );
-    if (save == null) return;
+    if (save == null || !mounted) return;
 
     // Cancel all exercise timers
     for (final t in _exerciseTimers.values) {

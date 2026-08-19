@@ -211,7 +211,7 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
             weight: (setMap['weight'] as num).toDouble(),
             reps: isDuration ? 0 : (setMap['reps'] as num).toInt(),
             durationSeconds: isDuration
-                ? (setMap['duration'] ?? 0 as num).toInt()
+                ? ((setMap['duration'] ?? 0) as num).toInt()
                 : 0,
             isCompleted: setMap['done'] as bool,
           ),

@@ -231,9 +231,9 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
       orElse: () => widget.routine,
     );
 
-    // Clean up any hard-deleted/orphaned exercise IDs
+    // Clean up any hard-deleted/orphaned or soft-deleted exercise IDs
     final validExerciseIds = currentRoutine.exerciseIds
-        .where((id) => exerciseMap.containsKey(id))
+        .where((id) => exerciseMap.containsKey(id) && !exerciseMap[id]!.isDeleted)
         .toList();
 
     // Make sure configs are updated if exercises were added or swapped

@@ -6,25 +6,25 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
   @override
   List<Routine> build() {
     final box = Hive.box<Routine>('routines');
-    if (box.isEmpty) {
-      _preloadDefaults(box);
+    if (!box.containsKey('r_1a')) {
+      preloadDefaults(box);
     }
     return box.values.toList();
   }
 
-  void _preloadDefaults(Box<Routine> box) {
+  static void preloadDefaults(Box<Routine> box) {
     final defaults = [
       // ---- SCHEDA 1 ----
       Routine(
         id: 'r_1a',
-        name: 'Giorno 1A (Scheda 1 A)',
+        name: 'Giorno 1A',
         // mobilità lower, glute bridge, Plank, serie risc., hip thrust, pulley,
         // stacchi rumeni b-stance, alzate laterali, hyperextension, calf singolo
         exerciseIds: [
           'ex_1',
-          'ex_6',
-          'ex_4',
+          'ex_2',
           'ex_3',
+          'ex_4',
           'ex_7',
           'ex_16',
           'ex_8',
@@ -35,18 +35,18 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
       ),
       Routine(
         id: 'r_1b',
-        name: 'Giorno 1B (Scheda 1 B)',
+        name: 'Giorno 1B',
         // mobilità upper, Plank, serie risc., Lat machine prona,
         // spinte manubri 75°, pulley presa larga, Curl EZ, push down corda
         exerciseIds: [
           'ex_2',
           'ex_4',
-          'ex_3',
           'ex_18',
           'ex_22',
           'ex_17',
           'ex_25',
           'ex_27',
+          'ex_5'
         ],
       ),
       Routine(
@@ -56,9 +56,8 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
         // stacchi rumeni, hip thrust, affondi bulgari, kickback, leg curl
         exerciseIds: [
           'ex_1',
-          'ex_6',
-          'ex_4',
           'ex_3',
+          'ex_4',
           'ex_9',
           'ex_7',
           'ex_10',
@@ -69,15 +68,14 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
       // ---- SCHEDA 2 ----
       Routine(
         id: 'r_2a',
-        name: 'Giorno 2A (Scheda 2 A)',
+        name: 'Giorno 2A',
         // mobilità lower, mobilità upper, glute bridge, Plank, serie risc.,
         // stacchi rumeni, military press, step up, triceps press cavo alto, slanci laterali al cavo
         exerciseIds: [
           'ex_1',
           'ex_2',
-          'ex_6',
-          'ex_4',
           'ex_3',
+          'ex_4',
           'ex_9',
           'ex_24',
           'ex_13',
@@ -87,13 +85,12 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
       ),
       Routine(
         id: 'r_2b',
-        name: 'Giorno 2B (Scheda 2 B)',
+        name: 'Giorno 2B',
         // mobilità upper, Plank, serie risc., lat machine triangolo,
         // Rematore singolo, alzate laterali, Curl manubri, french press, Crunch al cavo
         exerciseIds: [
           'ex_2',
           'ex_4',
-          'ex_3',
           'ex_19',
           'ex_20',
           'ex_23',
@@ -104,21 +101,27 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
       ),
       Routine(
         id: 'r_2c',
-        name: 'Giorno 2C (Scheda 2 C)',
+        name: 'Giorno 2C',
         // mobilità lower, glute bridge, Plank, serie risc.,
         // hip thrust, stacchi rumeni monopodalici su panca,
         // affondi su rialzo posteriore multipower, hyperextension, kickback
         exerciseIds: [
           'ex_1',
-          'ex_6',
-          'ex_4',
           'ex_3',
+          'ex_4',
           'ex_7',
           'ex_30',
           'ex_31',
           'ex_21',
           'ex_11',
         ],
+        exerciseConfigs: {
+          'ex_11': ExerciseConfig(
+            exerciseId: 'ex_11',
+            routineNotes:
+                '10 ripetizioni con un peso che faccia arrivare a sfinimento, recupero 10 secondi, ripartire arrivando a sfinimento (dovrebbero venire dalle 4 alle 6 ripetizioni non di più, se il carico è giusto). Questa è una sola serie.',
+          ),
+        },
       ),
     ];
 

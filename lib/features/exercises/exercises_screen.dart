@@ -162,11 +162,20 @@ class ExercisesScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
+                    final name = nameCtrl.text.trim();
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        const SnackBar(
+                          content: Text('Il nome non può essere vuoto'),
+                        ),
+                      );
+                      return;
+                    }
                     ref
                         .read(exercisesProvider.notifier)
                         .editExercise(
                           ex.id,
-                          nameCtrl.text.trim(),
+                          name,
                           notesCtrl.text.trim(),
                           metricType: selectedMetric,
                         );
@@ -182,7 +191,10 @@ class ExercisesScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ).whenComplete(() {
+      nameCtrl.dispose();
+      notesCtrl.dispose();
+    });
   }
 
   @override
