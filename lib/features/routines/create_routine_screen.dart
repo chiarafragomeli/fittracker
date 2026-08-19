@@ -18,15 +18,17 @@ class CreateRoutineScreen extends ConsumerStatefulWidget {
 class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _searchController;
-  late final List<String> _selectedExerciseIds;
+  late List<String> _selectedExerciseIds;
   String _filterGroup = 'Tutti';
   String _searchQuery = '';
+  String? _healthActivityType;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.routine?.name ?? '');
     _searchController = TextEditingController();
+    _healthActivityType = widget.routine?.healthActivityType;
     _selectedExerciseIds = List.from(widget.routine?.exerciseIds ?? []);
   }
 
@@ -47,12 +49,18 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
     }
 
     if (widget.routine != null) {
-      final updated = widget.routine!.copyWith(name: name, exerciseIds: _selectedExerciseIds);
+      final updated = widget.routine!.copyWith(
+        name: name,
+        exerciseIds: _selectedExerciseIds,
+        healthActivityType: _healthActivityType,
+      );
       ref.read(routinesProvider.notifier).updateRoutine(updated);
     } else {
-      ref
-          .read(routinesProvider.notifier)
-          .addRoutine(name, _selectedExerciseIds);
+      ref.read(routinesProvider.notifier).addRoutine(
+            name,
+            _selectedExerciseIds,
+            healthActivityType: _healthActivityType,
+          );
     }
     Navigator.pop(context);
   }
@@ -107,13 +115,36 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
         children: [
           // Name field
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
             child: TextField(
               controller: _nameController,
               decoration: const InputDecoration(
                 hintText: 'Nome scheda (es. Giorno 3A)',
                 prefixIcon: Icon(Icons.edit, color: AppTheme.primaryColor),
               ),
+            ),
+          ),
+          
+          // HealthKit Type
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+            child: DropdownButtonFormField<String?>(
+              value: _healthActivityType,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.monitor_heart, color: Colors.redAccent),
+                hintText: 'Tipo di Allenamento Apple Health',
+              ),
+              items: const [
+                DropdownMenuItem(value: null, child: Text('Nessuno (Non sincronizzare)')),
+                DropdownMenuItem(value: 'traditionalStrengthTraining', child: Text('Pesistica Tradizionale')),
+                DropdownMenuItem(value: 'functionalStrengthTraining', child: Text('Allenamento Funzionale')),
+                DropdownMenuItem(value: 'highIntensityIntervalTraining', child: Text('HIIT')),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _healthActivityType = val;
+                });
+              },
             ),
           ),
 

@@ -6,6 +6,7 @@ import '../../core/database/models.dart';
 import 'package:intl/intl.dart';
 import '../exercises/exercises_provider.dart';
 import 'workout_history_screen.dart';
+import '../settings/settings_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -155,6 +156,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildCalendar(logs),
+                const SizedBox(height: 32),
+                const Text(
+                  'Impostazioni',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final syncEnabled = ref.watch(settingsProvider);
+                      return SwitchListTile(
+                        title: const Text('Sincronizza con Apple Salute', style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: const Text('Salva automaticamente i tuoi allenamenti nell\'app Salute e Fitness.'),
+                        value: syncEnabled,
+                        activeColor: AppTheme.primaryColor,
+                        onChanged: (val) {
+                          ref.read(settingsProvider.notifier).toggleSyncHealthKit(val);
+                        },
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           );

@@ -59,9 +59,14 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
     }
   }
 
-  void addRoutine(String name, List<String> exerciseIds) {
+  void addRoutine(String name, List<String> exerciseIds, {String? healthActivityType}) {
     final newId = DateTime.now().millisecondsSinceEpoch.toString();
-    final newRoutine = Routine(id: newId, name: name, exerciseIds: exerciseIds);
+    final newRoutine = Routine(
+      id: newId, 
+      name: name, 
+      exerciseIds: exerciseIds, 
+      healthActivityType: healthActivityType,
+    );
     _repository.saveRoutine(newRoutine);
     state = _repository.getAllRoutines();
   }

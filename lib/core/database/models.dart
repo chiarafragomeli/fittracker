@@ -122,6 +122,7 @@ class Routine {
   final String id;
   final String name;
   final List<String> exerciseIds;
+  final String? healthActivityType;
 
   /// Configurazioni per esercizio: mappa exerciseId -> ExerciseConfig
   final Map<String, ExerciseConfig> exerciseConfigs;
@@ -130,6 +131,7 @@ class Routine {
     required this.id,
     required this.name,
     required this.exerciseIds,
+    this.healthActivityType,
     Map<String, ExerciseConfig>? exerciseConfigs,
   }) : exerciseConfigs = exerciseConfigs ?? {};
 
@@ -137,13 +139,15 @@ class Routine {
     String? id,
     String? name,
     List<String>? exerciseIds,
+    String? healthActivityType,
     Map<String, ExerciseConfig>? exerciseConfigs,
   }) {
     return Routine(
       id: id ?? this.id,
       name: name ?? this.name,
-      exerciseIds: exerciseIds ?? List.from(this.exerciseIds),
-      exerciseConfigs: exerciseConfigs ?? Map.from(this.exerciseConfigs),
+      exerciseIds: exerciseIds ?? this.exerciseIds,
+      healthActivityType: healthActivityType ?? this.healthActivityType,
+      exerciseConfigs: exerciseConfigs ?? this.exerciseConfigs,
     );
   }
 }
@@ -302,12 +306,18 @@ class RoutineAdapter extends TypeAdapter<Routine> {
     } catch (_) {
       // Old data without configs — use defaults
     }
+    String? healthType;
+    try {
+      healthType = reader.readString();
+      if (healthType.isEmpty) healthType = null;
+    } catch (_) {}
 
     return Routine(
       id: id,
       name: name,
       exerciseIds: exerciseIds,
       exerciseConfigs: configs,
+      healthActivityType: healthType,
     );
   }
 
@@ -316,8 +326,7 @@ class RoutineAdapter extends TypeAdapter<Routine> {
     writer.writeString(obj.id);
     writer.writeString(obj.name);
     writer.writeStringList(obj.exerciseIds);
-
-    // Write exercise configs
+    
     writer.writeInt(obj.exerciseConfigs.length);
     obj.exerciseConfigs.forEach((exId, cfg) {
       writer.writeString(exId);
@@ -327,6 +336,8 @@ class RoutineAdapter extends TypeAdapter<Routine> {
       writer.writeString(cfg.routineNotes);
       writer.writeInt(cfg.defaultDuration);
     });
+    
+    writer.writeString(obj.healthActivityType ?? '');
   }
 }
 

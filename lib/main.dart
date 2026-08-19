@@ -39,6 +39,7 @@ void main() async {
   await Hive.openBox<Exercise>('exercises');
   await Hive.openBox<Routine>('routines');
   await Hive.openBox<WorkoutLog>('workout_logs');
+  await Hive.openBox('settings');
 
   await initializeDateFormatting('it_IT', null);
 

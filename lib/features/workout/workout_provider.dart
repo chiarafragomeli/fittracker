@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/models.dart';
 import '../../core/database/repositories_provider.dart';
+import '../../core/services/health_service.dart';
+import '../settings/settings_provider.dart';
 
 // Sound service via iOS native channel
 class _SoundService {
@@ -222,6 +224,21 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
     
     final logsRepo = ref.read(workoutLogsRepositoryProvider);
     logsRepo.saveLog(finishedWorkout);
+    
+    // Sync with Apple Health
+    final syncEnabled = ref.read(settingsProvider);
+    if (syncEnabled && state.activeRoutine != null) {
+      final activityType = state.activeRoutine!.healthActivityType;
+      
+      if (activityType != null && activityType != 'none') {
+        final healthService = HealthService();
+        healthService.saveWorkout(
+          start: finishedWorkout.startTime,
+          end: finishedWorkout.endTime!,
+          activityTypeStr: activityType,
+        );
+      }
+    }
     
     _timer?.cancel();
     state = WorkoutState();
