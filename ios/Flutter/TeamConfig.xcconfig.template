@@ -1,0 +1,4 @@
+// Template for iOS signing configuration.
+// Copy this file to TeamConfig.xcconfig and fill in your Apple Developer Team ID.
+// TeamConfig.xcconfig is excluded from git (see .gitignore).
+DEVELOPMENT_TEAM = YOUR_TEAM_ID_HERE
