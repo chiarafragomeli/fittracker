@@ -47,10 +47,8 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
   }
 
   void _saveConfigs() {
-    // Save updated configs back to Hive via provider
-    ref
-        .read(routinesProvider.notifier)
-        .updateRoutineConfigs(widget.routine.id, _configs);
+    final updated = widget.routine.copyWith(exerciseConfigs: _configs);
+    ref.read(routinesProvider.notifier).updateRoutine(updated);
   }
 
   void _showConfigSheet(String exId, String exName, Exercise? exercise) {
@@ -317,13 +315,8 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                       final item = exerciseIds.removeAt(oldIndex);
                       exerciseIds.insert(newIndex, item);
 
-                      ref
-                          .read(routinesProvider.notifier)
-                          .updateRoutine(
-                            currentRoutine.id,
-                            currentRoutine.name,
-                            exerciseIds,
-                          );
+                      final updated = currentRoutine.copyWith(exerciseIds: exerciseIds);
+                      ref.read(routinesProvider.notifier).updateRoutine(updated);
                     },
                     proxyDecorator: (child, index, animation) => child,
                     itemBuilder: (context, index) {

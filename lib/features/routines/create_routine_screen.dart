@@ -47,9 +47,8 @@ class _CreateRoutineScreenState extends ConsumerState<CreateRoutineScreen> {
     }
 
     if (widget.routine != null) {
-      ref
-          .read(routinesProvider.notifier)
-          .updateRoutine(widget.routine!.id, name, _selectedExerciseIds);
+      final updated = widget.routine!.copyWith(name: name, exerciseIds: _selectedExerciseIds);
+      ref.read(routinesProvider.notifier).updateRoutine(updated);
     } else {
       ref
           .read(routinesProvider.notifier)

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/database/models.dart';
+import '../../core/database/repositories_provider.dart';
 
 // Sound service via iOS native channel
 class _SoundService {
@@ -74,6 +74,8 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
   }
 
   void startWorkout(Routine routine) {
+    final exercisesRepo = ref.read(exercisesRepositoryProvider);
+    
     final newWorkout = WorkoutLog(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: routine.name,
@@ -82,12 +84,11 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
     );
 
     // Inizializza i set correnti
-    final exerciseBox = Hive.box<Exercise>('exercises');
     final initialSets = <String, List<Map<String, dynamic>>>{};
     for (final exId in routine.exerciseIds) {
       final cfg =
           routine.exerciseConfigs[exId] ?? ExerciseConfig(exerciseId: exId);
-      final exercise = exerciseBox.get(exId);
+      final exercise = exercisesRepo.getExercise(exId);
       final isDuration = exercise?.metricType == MetricType.duration;
       initialSets[exId] = List.generate(
         cfg.defaultSets,
@@ -122,13 +123,7 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
   void updateWorkoutName(String newName) {
     if (state.currentWorkout == null) return;
     state = state.copyWith(
-      currentWorkout: WorkoutLog(
-        id: state.currentWorkout!.id,
-        name: newName,
-        startTime: state.currentWorkout!.startTime,
-        endTime: state.currentWorkout!.endTime,
-        sets: state.currentWorkout!.sets,
-      ),
+      currentWorkout: state.currentWorkout!.copyWith(name: newName),
     );
   }
 
@@ -147,12 +142,12 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
 
       Duration? newRestTimer = state.restTimer;
       bool justFinished = false;
-
-      if (newRestTimer != null && newRestTimer.inSeconds > 0) {
-        newRestTimer = newRestTimer - const Duration(seconds: 1);
-        if (newRestTimer.inSeconds <= 0) {
-          newRestTimer = null;
+      if (newRestTimer != null) {
+        if (newRestTimer.inSeconds > 0) {
+          newRestTimer = newRestTimer - const Duration(seconds: 1);
+        } else {
           justFinished = true;
+          newRestTimer = null;
           _SoundService.playRestDone();
         }
       }
@@ -161,17 +156,23 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
         elapsedTime: state.elapsedTime + const Duration(seconds: 1),
         restTimer: newRestTimer,
         restTimerJustFinished: justFinished,
-        clearRestTimer: newRestTimer == null && state.restTimer != null,
+        clearRestTimer: newRestTimer == null,
       );
     });
   }
 
   void startRestTimer(Duration duration) {
-    state = state.copyWith(restTimer: duration, restTimerJustFinished: false);
+    state = state.copyWith(
+      restTimer: duration,
+      restTimerJustFinished: false,
+    );
   }
 
   void cancelRestTimer() {
-    state = state.copyWith(clearRestTimer: true, restTimerJustFinished: false);
+    state = state.copyWith(
+      restTimerJustFinished: false,
+      clearRestTimer: true,
+    );
   }
 
   void acknowledgeRestFinished() {
@@ -188,12 +189,7 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
       updatedSets.add(set);
     }
     state = state.copyWith(
-      currentWorkout: WorkoutLog(
-        id: state.currentWorkout!.id,
-        name: state.currentWorkout!.name,
-        startTime: state.currentWorkout!.startTime,
-        sets: updatedSets,
-      ),
+      currentWorkout: state.currentWorkout!.copyWith(sets: updatedSets),
     );
   }
 
@@ -219,15 +215,14 @@ class WorkoutNotifier extends Notifier<WorkoutState> {
       }
     });
 
-    final finishedWorkout = WorkoutLog(
-      id: state.currentWorkout!.id,
-      name: state.currentWorkout!.name,
-      startTime: state.currentWorkout!.startTime,
+    final finishedWorkout = state.currentWorkout!.copyWith(
       endTime: DateTime.now(),
       sets: completedSets,
     );
-    final box = Hive.box<WorkoutLog>('workout_logs');
-    box.put(finishedWorkout.id, finishedWorkout);
+    
+    final logsRepo = ref.read(workoutLogsRepositoryProvider);
+    logsRepo.saveLog(finishedWorkout);
+    
     _timer?.cancel();
     state = WorkoutState();
   }

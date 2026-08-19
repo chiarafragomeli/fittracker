@@ -7,6 +7,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/theme/theme.dart';
 import 'core/database/models.dart';
+import 'core/database/exercises_repository.dart';
+import 'core/database/routines_repository.dart';
 import 'features/routines/routines_screen.dart';
 import 'features/routines/routines_provider.dart';
 import 'features/exercises/exercises_screen.dart';
@@ -43,12 +45,12 @@ void main() async {
   // Preload defaults before importing CSV so they don't get recreated as deleted
   final exBox = Hive.box<Exercise>('exercises');
   if (!exBox.containsKey('ex_1')) {
-    ExercisesNotifier.preloadDefaults(exBox);
+    ExercisesRepository.preloadDefaults(exBox);
   }
   
   final routineBox = Hive.box<Routine>('routines');
   if (!routineBox.containsKey('r_1a')) {
-    RoutinesNotifier.preloadDefaults(routineBox);
+    RoutinesRepository.preloadDefaults(routineBox);
   }
 
   // Import old workouts if missing

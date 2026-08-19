@@ -5,13 +5,13 @@ enum MetricType { reps, duration }
 // --- Models ---
 
 class Exercise {
-  String id;
-  String name;
-  String muscleGroup;
-  bool isCustom;
-  String notes; // Note di esecuzione
-  MetricType metricType;
-  bool isDeleted;
+  final String id;
+  final String name;
+  final String muscleGroup;
+  final bool isCustom;
+  final String notes; // Note di esecuzione
+  final MetricType metricType;
+  final bool isDeleted;
 
   Exercise({
     required this.id,
@@ -22,6 +22,26 @@ class Exercise {
     this.metricType = MetricType.reps,
     this.isDeleted = false,
   });
+
+  Exercise copyWith({
+    String? id,
+    String? name,
+    String? muscleGroup,
+    bool? isCustom,
+    String? notes,
+    MetricType? metricType,
+    bool? isDeleted,
+  }) {
+    return Exercise(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      muscleGroup: muscleGroup ?? this.muscleGroup,
+      isCustom: isCustom ?? this.isCustom,
+      notes: notes ?? this.notes,
+      metricType: metricType ?? this.metricType,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
 }
 
 class WorkoutSet {
@@ -78,6 +98,24 @@ class ExerciseConfig {
     this.restSeconds = 90,
     this.routineNotes = '',
   });
+
+  ExerciseConfig copyWith({
+    String? exerciseId,
+    int? defaultSets,
+    int? defaultReps,
+    int? defaultDuration,
+    int? restSeconds,
+    String? routineNotes,
+  }) {
+    return ExerciseConfig(
+      exerciseId: exerciseId ?? this.exerciseId,
+      defaultSets: defaultSets ?? this.defaultSets,
+      defaultReps: defaultReps ?? this.defaultReps,
+      defaultDuration: defaultDuration ?? this.defaultDuration,
+      restSeconds: restSeconds ?? this.restSeconds,
+      routineNotes: routineNotes ?? this.routineNotes,
+    );
+  }
 }
 
 class Routine {
@@ -94,6 +132,20 @@ class Routine {
     required this.exerciseIds,
     Map<String, ExerciseConfig>? exerciseConfigs,
   }) : exerciseConfigs = exerciseConfigs ?? {};
+
+  Routine copyWith({
+    String? id,
+    String? name,
+    List<String>? exerciseIds,
+    Map<String, ExerciseConfig>? exerciseConfigs,
+  }) {
+    return Routine(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      exerciseIds: exerciseIds ?? List.from(this.exerciseIds),
+      exerciseConfigs: exerciseConfigs ?? Map.from(this.exerciseConfigs),
+    );
+  }
 }
 
 class WorkoutLog {
@@ -110,6 +162,22 @@ class WorkoutLog {
     this.endTime,
     required this.sets,
   });
+
+  WorkoutLog copyWith({
+    String? id,
+    String? name,
+    DateTime? startTime,
+    DateTime? endTime,
+    List<WorkoutSet>? sets,
+  }) {
+    return WorkoutLog(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      sets: sets ?? List.from(this.sets),
+    );
+  }
 }
 
 // --- Hive TypeAdapters ---
