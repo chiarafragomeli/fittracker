@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/models.dart';
 import '../../core/database/repositories_provider.dart';
 import '../../core/database/routines_repository.dart';
+import '../../core/watch_connector.dart';
+import '../exercises/exercises_provider.dart';
 
 class RoutinesNotifier extends Notifier<List<Routine>> {
   late RoutinesRepository _repository;
@@ -69,16 +71,29 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
     );
     _repository.saveRoutine(newRoutine);
     state = _repository.getAllRoutines();
+    _syncToWatch();
   }
 
   void updateRoutine(Routine updatedRoutine) {
     _repository.saveRoutine(updatedRoutine);
     state = _repository.getAllRoutines();
+    _syncToWatch();
   }
 
   void deleteRoutine(String id) {
     _repository.deleteRoutine(id);
     state = _repository.getAllRoutines();
+    _syncToWatch();
+  }
+
+  /// Sincronizza le schede con l'Apple Watch
+  void _syncToWatch() {
+    final watchConnector = ref.read(watchConnectorProvider);
+    final exercises = ref.read(exercisesProvider);
+    watchConnector.syncRoutinesToWatch(
+      routines: state,
+      exercises: exercises,
+    );
   }
 
   void reorderExercises(String routineId, int oldIndex, int newIndex) {
