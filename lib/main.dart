@@ -45,13 +45,17 @@ void main() async {
 
   // Preload defaults before importing CSV so they don't get recreated as deleted
   final exBox = Hive.box<Exercise>('exercises');
-  if (!exBox.containsKey('ex_1')) {
+  if (!exBox.containsKey('ex_46')) {
     ExercisesRepository.preloadDefaults(exBox);
   }
   
   final routineBox = Hive.box<Routine>('routines');
-  if (!routineBox.containsKey('r_1a')) {
+  if (!routineBox.containsKey('r_4c')) {
     RoutinesRepository.preloadDefaults(routineBox);
+  }
+  final r1c = routineBox.get('r_1c');
+  if (r1c != null && r1c.name == 'Giorno 1C (Scheda 1 C)') {
+    await routineBox.put('r_1c', r1c.copyWith(name: 'Giorno 1C'));
   }
 
   // Import old workouts if missing
@@ -83,7 +87,7 @@ class GymTrackerApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
     return MaterialApp.router(
-      title: 'Gym Tracker',
+      title: 'My Gym Bro',
       theme: AppTheme.darkTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
@@ -254,13 +258,22 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         if (isWorkingOut)
           Consumer(
             builder: (context, ref, _) {
-              final workoutState = ref.watch(workoutProvider);
+              final isMinimized = ref.watch(
+                workoutProvider.select((s) => s.isMinimized),
+              );
+              final activeRoutine = ref.watch(
+                workoutProvider.select((s) => s.activeRoutine),
+              );
+              if (activeRoutine == null) return const SizedBox.shrink();
               return Positioned.fill(
                 child: Offstage(
-                  offstage: workoutState.isMinimized,
-                  child: ActiveWorkoutScreen(
-                    key: _workoutKey,
-                    routine: workoutState.activeRoutine!,
+                  offstage: isMinimized,
+                  child: TickerMode(
+                    enabled: !isMinimized,
+                    child: ActiveWorkoutScreen(
+                      key: _workoutKey,
+                      routine: activeRoutine,
+                    ),
                   ),
                 ),
               );
