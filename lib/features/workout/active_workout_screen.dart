@@ -5,6 +5,8 @@ import '../../core/theme/theme.dart';
 import '../../core/database/models.dart';
 import '../exercises/exercises_provider.dart';
 import '../workout/workout_provider.dart';
+import '../../core/watch_connector.dart';
+import '../../core/database/repositories_provider.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'components/duration_timer_field.dart';
@@ -30,9 +32,16 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   final Map<String, int> _exerciseTimerSeconds = {};
   final Map<String, bool> _exerciseTimerRunning = {};
 
+  // Cached previous workout history per exercise to avoid DB scans/sorting on rebuilds
+  final Map<String, Map<String, dynamic>?> _historyCache = {};
+
   @override
   void initState() {
     super.initState();
+    final allExercises = ref.read(exercisesProvider);
+    final exerciseMap = {for (var e in allExercises) e.id: e};
+    _precomputeExerciseHistories(exerciseMap);
+
     final stateSets = ref.read(workoutProvider).activeSets;
     if (stateSets != null && stateSets.isNotEmpty) {
       _sets = Map<String, List<Map<String, dynamic>>>.from(
@@ -47,8 +56,6 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       );
     } else {
       _sets = {};
-      final allExercises = ref.read(exercisesProvider);
-      final exerciseMap = {for (var e in allExercises) e.id: e};
       for (final exId in widget.routine.exerciseIds) {
         final exercise = exerciseMap[exId];
         // Skip deleted or missing exercises
@@ -164,6 +171,27 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
       ref
           .read(workoutProvider.notifier)
           .startRestTimer(Duration(seconds: cfg.restSeconds));
+
+      final workoutId = ref.read(workoutProvider).currentWorkout?.id ?? '';
+      final setMap = _sets[exId]![i];
+      final weight = (setMap['weight'] as num?)?.toDouble() ?? 0.0;
+      final reps = (setMap['reps'] as num?)?.toInt() ?? 0;
+      final dur = (setMap['duration'] as num?)?.toInt() ?? 0;
+      ref.read(watchConnectorProvider).syncSetToWatch(
+        workoutId: workoutId,
+        exerciseId: exId,
+        setIndex: i,
+        weight: weight,
+        reps: reps,
+        durationSeconds: dur,
+        restSeconds: cfg.restSeconds,
+      );
+
+      final ex = ref.read(exercisesRepositoryProvider).getExercise(exId);
+      ref.read(watchConnectorProvider).updateLiveActivity(
+        exerciseName: ex?.name ?? '',
+        setInfo: 'Serie ${i + 1}/${_sets[exId]!.length}',
+      );
     } else {
       // Un-checking → cancel and reset timer, also reset exercise timer
       ref.read(workoutProvider.notifier).cancelRestTimer();
@@ -186,7 +214,6 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
               (_exerciseTimerSeconds[timerKey] ?? 0) + 1;
           _sets[exId]![setIndex]['duration'] = _exerciseTimerSeconds[timerKey];
         });
-        _saveSetsToProvider();
       }
     });
   }
@@ -196,6 +223,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     _exerciseTimers[timerKey]?.cancel();
     _exerciseTimerRunning[timerKey] = false;
     setState(() {});
+    _saveSetsToProvider();
   }
 
   Future<void> _handleFinish() async {
@@ -233,10 +261,11 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
     if (save == null || !mounted) return;
 
-    // Cancel all exercise timers
+    // Cancel all exercise timers and sync final state before finishing
     for (final t in _exerciseTimers.values) {
       t.cancel();
     }
+    _saveSetsToProvider();
 
     if (save) {
       ref.read(workoutProvider.notifier).finishWorkout();
@@ -245,46 +274,143 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     }
   }
 
-  Map<String, dynamic>? _getExerciseHistory(String exId, bool isDuration) {
-    if (!Hive.isBoxOpen('workout_logs')) return null;
-    final box = Hive.box<WorkoutLog>('workout_logs');
-    final logs = box.values.toList().reversed;
+  static const Map<String, List<String>> _csvExerciseAliases = {
+    'ex_3': ['Ponte Glutei'],
+    'ex_4': ['Plank'],
+    'ex_5': ['Cable Crunch', 'Crunch (Con Peso Aggiunto)', 'Crunch (Macchina)'],
+    'ex_7': ['Hip Thrust (macchina)', 'Hip Thrust (Machine)'],
+    'ex_8': ['Stacco Rumeno a Gamba Singola (Manubrio)'],
+    'ex_9': ['Stacco da Terra Rumeno (Bilanciere)'],
+    'ex_10': ['Affondo Bulgaro (Manubrio)', 'Affondo Bulgaro'],
+    'ex_11': ['Estensioni Glutei al Cavo'],
+    'ex_12': ['Leg Curl Seduto (Macchina)'],
+    'ex_13': ['Step Up'],
+    'ex_14': ['Estensioni Glutei al Cavo'],
+    'ex_15': ['Calf Raise in Piedi a Una Gamba', 'Calf Raise Gamba Singola in Piedi '],
+    'ex_16': ['Rematore al Cavo da Seduto'],
+    'ex_17': ['Rematore al Cavo da Seduto - Presa Larga'],
+    'ex_18': ['Lat Pulldown (Cavo)', 'Lat Pulldown (Macchina)'],
+    'ex_19': ['Lat Pulldown (Cavo)'],
+    'ex_20': ['Rematore Manubrio'],
+    'ex_21': ['Estensione Dorso (Ipertensione con Peso)', 'Back Extension (Macchina)'],
+    'ex_22': ['Panca Inclinata (Manubrio)', 'Lento in Avanti (Manubrio)'],
+    'ex_23': ['Alzate Laterali (Manubrio)', 'Aperture Laterali (Manubrio)'],
+    'ex_24': ['Lento in Avanti in Piedi (Bilanciere)'],
+    'ex_25': ['Curl Bicipiti con EZ Bar'],
+    'ex_26': ['Curl Bicipiti (Manubrio)'],
+    'ex_27': ['Pushdown Tricipiti con Corda', 'Pushdown Tricipiti'],
+    'ex_28': ['Estensione Tricipiti (Manubrio)', 'Estensione Tricipiti Braccio Singolo (Manubrio)'],
+    'ex_29': ['Pushdown Tricipiti'],
+    'ex_30': ['Stacco Rumeno a Gamba Singola (Manubrio)'],
+    'ex_31': ['Affondi (Manubrio)'],
+    'ex_32': ['Estensione Tricipiti (Bilanciere)'],
+    'ex_33': ['Estensioni Glutei al Cavo'],
+    'ex_34': ['Trazione'],
+    'ex_35': ['Rematore al Cavo a Braccio Singolo'],
+    'ex_36': ['Lento in Avanti Seduto (Macchina)'],
+    'ex_37': ['Alzate Laterali (Manubrio)'],
+    'ex_38': ['Curl Sopra la Testa (Cavo)'],
+    'ex_39': ['Leg Raise Appeso'],
+    'ex_40': ['Ponte Glutei Parziale (Bilanciere)'],
+    'ex_41': ['Stacco da Terra Rumeno (Bilanciere)'],
+    'ex_42': ['Rematore al Cavo da Seduto'],
+    'ex_43': ['Plank'],
+    'ex_44': ['Lento in Avanti (Manubrio)'],
+    'ex_45': ['Crunch (Con Peso Aggiunto)', 'Cable Crunch'],
+    'ex_46': ['Estensione Dorso (Ipertensione con Peso)'],
+  };
 
-    for (final log in logs) {
-      final sets = log.sets
-          .where((s) => s.exerciseId == exId && s.isCompleted)
-          .toList();
-      if (sets.isNotEmpty) {
-        double maxWeight = 0;
-        int maxMetric = 0;
-        for (final s in sets) {
-          if (s.weight > maxWeight) maxWeight = s.weight;
-          final metric = isDuration ? s.durationSeconds : s.reps;
-          if (metric > maxMetric) maxMetric = metric;
-        }
-        return {
-          'date': log.startTime,
-          'maxWeight': maxWeight,
-          'maxMetric': maxMetric,
-          'totalSets': sets.length,
-        };
+  void _precomputeExerciseHistories(Map<String, Exercise> exerciseMap) {
+    if (!Hive.isBoxOpen('workout_logs')) return;
+    final box = Hive.box<WorkoutLog>('workout_logs');
+    final logs = box.values.toList()
+      ..sort((a, b) => b.startTime.compareTo(a.startTime));
+
+    final Map<String, List<String>> nameToIds = {};
+    if (Hive.isBoxOpen('exercises')) {
+      final exBox = Hive.box<Exercise>('exercises');
+      for (final ex in exBox.values) {
+        nameToIds.putIfAbsent(ex.name, () => []).add(ex.id);
       }
     }
-    return null;
+
+    for (final exId in widget.routine.exerciseIds) {
+      final ex = exerciseMap[exId];
+      if (ex == null) continue;
+      final isDuration = ex.metricType == MetricType.duration;
+
+      final matchingIds = <String>{exId};
+      final aliases = _csvExerciseAliases[exId];
+      if (aliases != null) {
+        for (final alias in aliases) {
+          final ids = nameToIds[alias];
+          if (ids != null) matchingIds.addAll(ids);
+        }
+      }
+
+      Map<String, dynamic>? foundHistory;
+      for (final log in logs) {
+        final sets = log.sets
+            .where((s) => matchingIds.contains(s.exerciseId) && s.isCompleted)
+            .toList();
+        if (sets.isNotEmpty) {
+          double maxWeight = 0;
+          int maxMetric = 0;
+          for (final s in sets) {
+            if (s.weight > maxWeight) maxWeight = s.weight;
+            final metric = isDuration ? s.durationSeconds : s.reps;
+            if (metric > maxMetric) maxMetric = metric;
+          }
+          foundHistory = {
+            'date': log.startTime,
+            'maxWeight': maxWeight,
+            'maxMetric': maxMetric,
+            'totalSets': sets.length,
+          };
+          break;
+        }
+      }
+      _historyCache[exId] = foundHistory;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final workoutState = ref.watch(workoutProvider);
+    final currentWorkoutName = ref.watch(
+      workoutProvider.select((s) => s.currentWorkout?.name),
+    );
 
     // Show overlay when rest timer finishes
-    ref.listen<WorkoutState>(workoutProvider, (prev, next) {
-      if (next.restTimerJustFinished &&
-          !(prev?.restTimerJustFinished ?? false)) {
-        _showRestDoneOverlay();
-        ref.read(workoutProvider.notifier).acknowledgeRestFinished();
-      }
-    });
+    ref.listen<bool>(
+      workoutProvider.select((s) => s.restTimerJustFinished),
+      (prev, next) {
+        if (next && !(prev ?? false)) {
+          _showRestDoneOverlay();
+          ref.read(workoutProvider.notifier).acknowledgeRestFinished();
+        }
+      },
+    );
+
+    // Update local _sets when activeSets is updated externally (e.g. from Apple Watch)
+    ref.listen<Map<String, List<Map<String, dynamic>>>?>(
+      workoutProvider.select((s) => s.activeSets),
+      (prev, next) {
+        if (next != null) {
+          setState(() {
+            _sets = Map<String, List<Map<String, dynamic>>>.from(
+              next.map(
+                (k, v) => MapEntry(
+                  k,
+                  List<Map<String, dynamic>>.from(
+                    v.map((set) => Map<String, dynamic>.from(set)),
+                  ),
+                ),
+              ),
+            );
+          });
+        }
+      },
+    );
 
     final allExercises = ref.watch(exercisesProvider);
     final exerciseMap = {for (var e in allExercises) e.id: e};
@@ -297,13 +423,14 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
           automaticallyImplyLeading: false,
           leading: IconButton(
             icon: const Icon(Icons.keyboard_arrow_down, size: 28),
-            onPressed: () =>
-                ref.read(workoutProvider.notifier).minimizeWorkout(),
+            onPressed: () {
+              _saveSetsToProvider();
+              ref.read(workoutProvider.notifier).minimizeWorkout();
+            },
           ),
           title: GestureDetector(
             onTap: () async {
-              final currentName =
-                  workoutState.currentWorkout?.name ?? widget.routine.name;
+              final currentName = currentWorkoutName ?? widget.routine.name;
               final ctrl = TextEditingController(text: currentName);
               final newName = await showDialog<String>(
                 context: context,
@@ -348,8 +475,7 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                     children: [
                       Flexible(
                         child: Text(
-                          workoutState.currentWorkout?.name ??
-                              widget.routine.name,
+                          currentWorkoutName ?? widget.routine.name,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -373,12 +499,19 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                         color: AppTheme.primaryColor,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        _formatDuration(workoutState.elapsedTime),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.primaryColor,
-                        ),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final elapsedTime = ref.watch(
+                            workoutProvider.select((s) => s.elapsedTime),
+                          );
+                          return Text(
+                            _formatDuration(elapsedTime),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.primaryColor,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -387,48 +520,56 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
             ),
           ),
           actions: [
-            if (workoutState.restTimer != null &&
-                workoutState.restTimer!.inSeconds > 0)
-              GestureDetector(
-                onTap: () =>
-                    ref.read(workoutProvider.notifier).cancelRestTimer(),
-                child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.bedtime_outlined,
-                        size: 14,
-                        color: AppTheme.primaryColor,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _formatDuration(workoutState.restTimer!),
-                        style: const TextStyle(
+            Consumer(
+              builder: (context, ref, _) {
+                final restTimer = ref.watch(
+                  workoutProvider.select((s) => s.restTimer),
+                );
+                if (restTimer == null || restTimer.inSeconds <= 0) {
+                  return const SizedBox.shrink();
+                }
+                return GestureDetector(
+                  onTap: () =>
+                      ref.read(workoutProvider.notifier).cancelRestTimer(),
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.bedtime_outlined,
+                          size: 14,
                           color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.close,
-                        size: 12,
-                        color: AppTheme.primaryColor,
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          _formatDuration(restTimer),
+                          style: const TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.close,
+                          size: 12,
+                          color: AppTheme.primaryColor,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
+            ),
             TextButton(
               onPressed: _handleFinish,
               child: const Text(
@@ -580,10 +721,10 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
                       ),
                     ],
 
-                    // Previous history
+                    // Previous history (cached in initState)
                     Builder(
                       builder: (context) {
-                        final history = _getExerciseHistory(exId, isDuration);
+                        final history = _historyCache[exId];
                         if (history == null) return const SizedBox.shrink();
 
                         final dateStr = DateFormat(

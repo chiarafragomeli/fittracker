@@ -2,11 +2,18 @@ import SwiftUI
 
 struct MetricsPageView: View {
     @Environment(WorkoutManager.self) var workoutManager
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1.0)) { context in
+        TimelineView(
+            .periodic(
+                from: .now,
+                by: (isLuminanceReduced || workoutManager.isPaused) ? 15.0 : 1.0
+            )
+        ) { context in
+            let currentElapsed = workoutManager.elapsedTime(at: context.date)
             VStack(alignment: .leading, spacing: 12) {
-                Text(formatTime(workoutManager.elapsedTime))
+                Text(formatTime(currentElapsed, hideSeconds: isLuminanceReduced))
                     .font(.system(size: 40, weight: .semibold, design: .monospaced))
                     .foregroundColor(.yellow)
 
@@ -29,9 +36,12 @@ struct MetricsPageView: View {
         .containerBackground(.red.gradient, for: .tabView)
     }
 
-    private func formatTime(_ time: TimeInterval) -> String {
+    private func formatTime(_ time: TimeInterval, hideSeconds: Bool = false) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
+        if hideSeconds {
+            return String(format: "%02d:--", minutes)
+        }
         return String(format: "%02d:%02d", minutes, seconds)
     }
 }

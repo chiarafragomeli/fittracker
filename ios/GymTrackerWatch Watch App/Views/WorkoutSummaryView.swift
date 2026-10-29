@@ -6,15 +6,18 @@ struct WorkoutSummaryView: View {
     @Environment(\.dismiss) var dismiss
 
     var body: some View {
+        let currentDuration = workoutManager.elapsedTime(at: Date())
+        let avgBpm = workoutManager.averageHeartRate > 0 ? workoutManager.averageHeartRate : workoutManager.heartRate
+
         ScrollView {
             VStack(spacing: 16) {
                 Text("Riepilogo")
                     .font(.title3.bold())
 
                 VStack(alignment: .leading, spacing: 8) {
-                    SummaryRow(title: "Durata", value: formatTime(workoutManager.elapsedTime))
+                    SummaryRow(title: "Durata", value: formatTime(currentDuration))
                     SummaryRow(title: "Calorie", value: "\(Int(workoutManager.activeCalories)) kcal")
-                    SummaryRow(title: "FC Media", value: "\(Int(workoutManager.heartRate)) bpm")
+                    SummaryRow(title: "FC Media", value: "\(Int(avgBpm)) bpm")
                 }
                 .padding()
                 .background(Color.gray.opacity(0.2))
@@ -22,10 +25,21 @@ struct WorkoutSummaryView: View {
 
                 Button("Salva Allenamento") {
                     Task {
+                        let endDate = Date()
+                        let finalDuration = workoutManager.elapsedTime(at: endDate)
+                        let startDate = workoutManager.startDate ?? endDate.addingTimeInterval(-finalDuration)
+                        let workoutId = workoutManager.workoutId.isEmpty ? "workout_\(Int(startDate.timeIntervalSince1970 * 1000))" : workoutManager.workoutId
                         let _ = try? await workoutManager.endWorkout()
                         connectivityManager.sendCompletedWorkout(data: [
-                            "duration": workoutManager.elapsedTime,
-                            "calories": workoutManager.activeCalories
+                            "id": workoutId,
+                            "workoutId": workoutId,
+                            "routineId": workoutManager.currentRoutine?.id ?? "",
+                            "name": workoutManager.currentRoutine?.name ?? "Allenamento Watch",
+                            "startTimeMs": Int(startDate.timeIntervalSince1970 * 1000),
+                            "endTimeMs": Int(endDate.timeIntervalSince1970 * 1000),
+                            "duration": finalDuration,
+                            "calories": workoutManager.activeCalories,
+                            "sets": workoutManager.completedSets
                         ])
                         dismiss()
                     }
@@ -34,7 +48,11 @@ struct WorkoutSummaryView: View {
                 .tint(.green)
 
                 Button("Scarta Allenamento") {
+                    let wId = workoutManager.workoutId
                     workoutManager.discardWorkout()
+                    if !wId.isEmpty {
+                        connectivityManager.sendWorkoutDiscarded(workoutId: wId)
+                    }
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)

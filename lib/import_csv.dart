@@ -4,8 +4,16 @@ import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import 'core/database/models.dart';
 
+const String _kCsvSeedVersion = '2026_10_25_v2';
+
 Future<void> importWorkoutsFromCsv() async {
   final box = Hive.box<WorkoutLog>('workout_logs');
+  final settingsBox = Hive.box('settings');
+  if (settingsBox.get('csv_seed_version') == _kCsvSeedVersion &&
+      box.isNotEmpty) {
+    return;
+  }
+
   final exercisesBox = Hive.box<Exercise>('exercises');
 
   print('Reading workouts.csv...');
@@ -139,5 +147,6 @@ Future<void> importWorkoutsFromCsv() async {
     importedCount++;
   }
 
+  await settingsBox.put('csv_seed_version', _kCsvSeedVersion);
   print('Imported $importedCount workouts from CSV.');
 }

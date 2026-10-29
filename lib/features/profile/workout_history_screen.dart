@@ -5,6 +5,7 @@ import '../../core/theme/theme.dart';
 import '../../core/database/models.dart';
 import '../exercises/exercises_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/services/csv_export_service.dart';
 
 class WorkoutHistoryScreen extends ConsumerWidget {
   final String? filterMode; // 'today', 'week', 'month', or null for all
@@ -195,8 +196,28 @@ class WorkoutHistoryScreen extends ConsumerWidget {
                                       fontSize: 13,
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                 ],
                               ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.ios_share,
+                                size: 20,
+                                color: AppTheme.primaryColor,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              tooltip: 'Esporta CSV per Hevy',
+                              onPressed: () {
+                                CsvExportService.exportWorkoutsForHevy(
+                                  logs: [log],
+                                  exercises: exercises,
+                                  fileNamePrefix: log.name.isNotEmpty
+                                      ? log.name
+                                      : 'workout',
+                                );
+                              },
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),

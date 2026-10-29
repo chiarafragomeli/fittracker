@@ -11,53 +11,19 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
   @override
   List<Routine> build() {
     _repository = ref.watch(routinesRepositoryProvider);
-    if (!_repository.containsKey('r_1a')) {
+    if (!_repository.containsKey('r_4c')) {
       _preloadDefaults();
     }
-    return _repository.getAllRoutines();
+    final loaded = _repository.getAllRoutines();
+    Future.microtask(() => _syncToWatch(loaded));
+    return loaded;
   }
 
   void _preloadDefaults() {
-    final defaults = [
-      Routine(
-        id: 'r_1a',
-        name: 'Giorno 1A',
-        exerciseIds: ['ex_1', 'ex_2', 'ex_3', 'ex_4', 'ex_7', 'ex_16', 'ex_8', 'ex_23', 'ex_21', 'ex_15'],
-      ),
-      Routine(
-        id: 'r_1b',
-        name: 'Giorno 1B',
-        exerciseIds: ['ex_2', 'ex_4', 'ex_18', 'ex_22', 'ex_17', 'ex_25', 'ex_27', 'ex_5'],
-      ),
-      Routine(
-        id: 'r_1c',
-        name: 'Giorno 1C (Scheda 1 C)',
-        exerciseIds: ['ex_1', 'ex_3', 'ex_4', 'ex_9', 'ex_7', 'ex_10', 'ex_11', 'ex_12'],
-      ),
-      Routine(
-        id: 'r_2a',
-        name: 'Giorno 2A',
-        exerciseIds: ['ex_1', 'ex_2', 'ex_3', 'ex_4', 'ex_9', 'ex_24', 'ex_13', 'ex_29', 'ex_14'],
-      ),
-      Routine(
-        id: 'r_2b',
-        name: 'Giorno 2B',
-        exerciseIds: ['ex_2', 'ex_4', 'ex_19', 'ex_20', 'ex_23', 'ex_26', 'ex_28', 'ex_5'],
-      ),
-      Routine(
-        id: 'r_2c',
-        name: 'Giorno 2C',
-        exerciseIds: ['ex_1', 'ex_3', 'ex_4', 'ex_7', 'ex_30', 'ex_31', 'ex_21', 'ex_11'],
-        exerciseConfigs: {
-          'ex_11': ExerciseConfig(
-            exerciseId: 'ex_11',
-            routineNotes: '10 ripetizioni con un peso che faccia arrivare a sfinimento, recupero 10 secondi, ripartire arrivando a sfinimento (dovrebbero venire dalle 4 alle 6 ripetizioni non di più, se il carico è giusto). Questa è una sola serie.',
-          ),
-        },
-      ),
-    ];
-    for (var r in defaults) {
-      _repository.saveRoutine(r);
+    for (var r in RoutinesRepository.defaultRoutines) {
+      if (!_repository.containsKey(r.id)) {
+        _repository.saveRoutine(r);
+      }
     }
   }
 
@@ -87,11 +53,11 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
   }
 
   /// Sincronizza le schede con l'Apple Watch
-  void _syncToWatch() {
+  void _syncToWatch([List<Routine>? customRoutines]) {
     final watchConnector = ref.read(watchConnectorProvider);
     final exercises = ref.read(exercisesProvider);
     watchConnector.syncRoutinesToWatch(
-      routines: state,
+      routines: customRoutines ?? state,
       exercises: exercises,
     );
   }
@@ -105,6 +71,7 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
     final updated = routine.copyWith(exerciseIds: exIds);
     _repository.saveRoutine(updated);
     state = _repository.getAllRoutines();
+    _syncToWatch();
   }
 
   void removeExerciseFromRoutine(String routineId, String exerciseId) {
@@ -117,6 +84,7 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
     final updated = routine.copyWith(exerciseIds: exIds, exerciseConfigs: configs);
     _repository.saveRoutine(updated);
     state = _repository.getAllRoutines();
+    _syncToWatch();
   }
 
   void addExerciseToRoutine(String routineId, String exerciseId) {
@@ -127,6 +95,7 @@ class RoutinesNotifier extends Notifier<List<Routine>> {
       final updated = routine.copyWith(exerciseIds: exIds);
       _repository.saveRoutine(updated);
       state = _repository.getAllRoutines();
+      _syncToWatch();
     }
   }
 }

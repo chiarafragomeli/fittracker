@@ -13,17 +13,12 @@ struct ActiveWorkoutView: View {
             MetricsPageView()
                 .tag(1)
             
-            ExercisePageView()
+            ExercisePageView(showingSummary: $showingSummary)
                 .tag(2)
         }
         .tabViewStyle(.verticalPage)
         .sheet(isPresented: $showingSummary) {
             WorkoutSummaryView()
-        }
-        .onChange(of: workoutManager.isRunning) { _, isRunning in
-            if !isRunning {
-                showingSummary = true
-            }
         }
     }
 }

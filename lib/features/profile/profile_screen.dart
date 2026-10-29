@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../exercises/exercises_provider.dart';
 import 'workout_history_screen.dart';
 import '../settings/settings_provider.dart';
+import '../../core/services/csv_export_service.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -182,6 +183,79 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     },
                   ),
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: const Icon(
+                          Icons.ios_share,
+                          color: AppTheme.primaryColor,
+                        ),
+                        title: const Text(
+                          'Esporta allenamento di oggi per Hevy',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: const Text(
+                          'Genera il CSV (formato Strong) solo per la sessione di oggi.',
+                        ),
+                        onTap: () async {
+                          final todayLogs = logs
+                              .where(
+                                (l) =>
+                                    l.startTime.year == now.year &&
+                                    l.startTime.month == now.month &&
+                                    l.startTime.day == now.day,
+                              )
+                              .toList();
+                          if (todayLogs.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Nessun allenamento completato oggi da esportare.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          final exercises = ref.read(exercisesProvider);
+                          await CsvExportService.exportWorkoutsForHevy(
+                            logs: todayLogs,
+                            exercises: exercises,
+                            fileNamePrefix: 'hevy_oggi',
+                          );
+                        },
+                      ),
+                      const Divider(height: 1, color: Colors.white10),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.download_outlined,
+                          color: AppTheme.textSecondaryColor,
+                        ),
+                        title: const Text(
+                          'Esporta tutto lo storico per Hevy',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        subtitle: const Text(
+                          'Esporta tutte le sessioni salvate in formato CSV.',
+                        ),
+                        onTap: () async {
+                          if (logs.isEmpty) return;
+                          final exercises = ref.read(exercisesProvider);
+                          await CsvExportService.exportWorkoutsForHevy(
+                            logs: logs,
+                            exercises: exercises,
+                            fileNamePrefix: 'hevy_storico_completo',
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           );
@@ -271,15 +345,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  log.name.isNotEmpty
-                                      ? log.name
-                                      : 'Allenamento ${DateFormat('HH:mm').format(log.startTime)}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.primaryColor,
-                                  ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        log.name.isNotEmpty
+                                            ? log.name
+                                            : 'Allenamento ${DateFormat('HH:mm').format(log.startTime)}',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.ios_share,
+                                        size: 20,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                      tooltip: 'Esporta per Hevy',
+                                      onPressed: () {
+                                        CsvExportService.exportWorkoutsForHevy(
+                                          logs: [log],
+                                          exercises: exercises,
+                                          fileNamePrefix: log.name.isNotEmpty
+                                              ? log.name
+                                              : 'workout',
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
